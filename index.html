@@ -2,9 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, orientation=landscape">
     <title>Drone Game</title>
     <style>
         body {
@@ -12,22 +10,11 @@
             overflow: hidden;
             touch-action: none;
             position: fixed;
-            width: 100vw;
-            height: 100vh;
-            background-color: #87ceeb;
-            -webkit-touch-callout: none;
-            -webkit-user-select: none;
-            -webkit-tap-highlight-color: transparent;
-            overscroll-behavior: none;
+            width: 100%;
+            height: 100%;
         }
         canvas {
             display: block;
-            width: 100vw !important;
-            height: 100vh !important;
-            position: fixed;
-            top: 0;
-            left: 0;
-            touch-action: none;
         }
         #mobileControls {
             display: none;
@@ -90,8 +77,8 @@
             position: fixed;
             top: 0;
             left: 0;
-            width: 100vw;
-            height: 100vh;
+            width: 100%;
+            height: 100%;
             background-color: #00B4D8;
             color: white;
             justify-content: center;
@@ -100,15 +87,10 @@
             font-family: Arial, sans-serif;
             font-size: 24px;
             z-index: 2000;
-            flex-direction: column;
-            gap: 20px;
         }
-        @media screen and (orientation: portrait) {
+        @media (max-width: 900px) and (orientation: portrait) {
             #rotateMessage {
                 display: flex;
-            }
-            canvas, #mobileControls {
-                display: none;
             }
         }
         @media (max-width: 900px) {
@@ -134,18 +116,12 @@
             box-shadow: 0 0 10px rgba(0,0,0,0.5);
         }
     </style>
-  <script type="module" crossorigin src="./assets/index-BqA8qbII.js"></script>
+  <script type="module" crossorigin src="/drone-game/assets/index-DyVBMVz6.js"></script>
 </head>
 <body>
     <div id="rotateMessage">
-        <div>Please rotate your device to landscape mode</div>
-        <div style="font-size: 40px; animation: rotate 2s infinite;">📱↻</div>
-        <style>
-            @keyframes rotate {
-                0% { transform: rotate(0deg); }
-                100% { transform: rotate(90deg); }
-            }
-        </style>
+        Please rotate your device to landscape mode<br>
+        <span style="font-size: 40px;">📱↻</span>
     </div>
     <div id="mobileControls">
         <div class="control-set left-controls">
