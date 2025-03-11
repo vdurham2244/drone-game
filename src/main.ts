@@ -19,8 +19,6 @@ class Game {
     private drone: THREE.Object3D | null = null;
     private buildings: Building[] = [];
     private controls: OrbitControls;
-    private cleaningRadius = 2;
-    private cleaningPower = 1;
     private isSprayOn: boolean = false;
     private spraySystem: THREE.Points | null = null;
     private propellers: THREE.Object3D[] = [];
@@ -35,6 +33,10 @@ class Game {
     private gameStarted: boolean = false;
     private gameMode: 'learning' | 'speed' | null = null;
     private startScreenContainer: HTMLDivElement | null = null;
+    private moveForward: boolean = false;
+    private moveBackward: boolean = false;
+    private moveLeft: boolean = false;
+    private moveRight: boolean = false;
 
     constructor() {
         // Scene setup
@@ -96,6 +98,9 @@ class Game {
 
         // Start animation loop
         this.animate();
+
+        // Setup touch controls
+        this.setupControls();
     }
 
     private createStartScreen(): void {
@@ -437,21 +442,17 @@ class Game {
     private onKeyDown(event: KeyboardEvent): void {
         this.keysPressed[event.key.toLowerCase()] = true;
         switch (event.key.toLowerCase()) {
-            case ' ':
-                // Toggle the sprayer
+            case 'w': case 'arrowup':    this.moveForward = true; break;
+            case 's': case 'arrowdown':  this.moveBackward = true; break;
+            case 'a': case 'arrowleft':  this.moveLeft = true; break;
+            case 'd': case 'arrowright': this.moveRight = true; break;
+            case ' ':                    
                 this.isSprayOn = !this.isSprayOn;
                 if (this.isSprayOn && !this.spraySystem) {
                     this.createSpraySystem();
                 }
                 break;
-            case 'c':
-                if (this.isSprayOn) {
-                    this.clean();
-                }
-                break;
-            case 'v':
-                this.toggleCamera();
-                break;
+            case 'v':                    this.toggleCamera(); break;
         }
     }
 
@@ -477,10 +478,10 @@ class Game {
 
         // Horizontal movement (arrow keys and Q/E for strafing)
         let moveX = 0, moveZ = 0;
-        if (this.keysPressed['arrowdown']) moveZ -= 1;
-        if (this.keysPressed['arrowup']) moveZ += 1;
-        if (this.keysPressed['arrowleft']) moveX += 1;
-        if (this.keysPressed['arrowright']) moveX -= 1;
+        if (this.keysPressed['arrowdown'] || this.moveBackward) moveZ -= 1;
+        if (this.keysPressed['arrowup'] || this.moveForward) moveZ += 1;
+        if (this.keysPressed['arrowleft'] || this.moveLeft) moveX += 1;
+        if (this.keysPressed['arrowright'] || this.moveRight) moveX -= 1;
         if (this.keysPressed['q']) moveX -= 1;
         if (this.keysPressed['e']) moveX += 1;
 
@@ -662,18 +663,6 @@ class Game {
         
         this.controls.update();
         this.renderer.render(this.scene, this.activeCamera);
-    }
-
-    private clean(): void {
-        if (!this.drone || !this.isSprayOn) return;
-        this.buildings.forEach(building => {
-            const buildingPos = building.getMesh().position;
-            const dronePos = this.drone!.position;
-            const distance = new THREE.Vector3(buildingPos.x, buildingPos.y, buildingPos.z).distanceTo(dronePos);
-            if (distance < this.cleaningRadius) {
-                building.clean(this.cleaningPower);
-            }
-        });
     }
 
     private toggleCamera(): void {
@@ -1057,6 +1046,150 @@ class Game {
         popupElement.appendChild(button);
 
         document.body.appendChild(popupElement);
+    }
+
+    private setupControls(): void {
+        // Check if mobile
+        const isMobile = window.innerWidth <= 900;
+
+        if (!isMobile) {
+            // Desktop keyboard controls
+            document.addEventListener('keydown', (event) => {
+                switch (event.key.toLowerCase()) {
+                    case 'w': case 'arrowup':    this.moveForward = true; break;
+                    case 's': case 'arrowdown':  this.moveBackward = true; break;
+                    case 'a': case 'arrowleft':  this.moveLeft = true; break;
+                    case 'd': case 'arrowright': this.moveRight = true; break;
+                    case ' ':                    
+                        this.isSprayOn = !this.isSprayOn;
+                        if (this.isSprayOn && !this.spraySystem) {
+                            this.createSpraySystem();
+                        }
+                        break;
+                    case 'v':                    this.toggleCamera(); break;
+                }
+            });
+
+            document.addEventListener('keyup', (event) => {
+                switch (event.key.toLowerCase()) {
+                    case 'w': case 'arrowup':    this.moveForward = false; break;
+                    case 's': case 'arrowdown':  this.moveBackward = false; break;
+                    case 'a': case 'arrowleft':  this.moveLeft = false; break;
+                    case 'd': case 'arrowright': this.moveRight = false; break;
+                }
+            });
+        } else {
+            // Mobile controls with improved touch handling
+            const setupMobileButton = (id: string, startAction: () => void, endAction: () => void) => {
+                const button = document.getElementById(id);
+                if (!button) return;
+
+                let isPressed = false;
+                let pressInterval: number | null = null;
+
+                const startPress = (e: Event) => {
+                    e.preventDefault();
+                    if (isPressed) return;
+                    isPressed = true;
+                    startAction();
+                    
+                    // For continuous actions, repeat the action every frame
+                    pressInterval = window.setInterval(() => {
+                        if (isPressed) startAction();
+                    }, 16); // ~60fps
+                };
+
+                const endPress = (e: Event) => {
+                    e.preventDefault();
+                    isPressed = false;
+                    if (pressInterval) {
+                        window.clearInterval(pressInterval);
+                        pressInterval = null;
+                    }
+                    endAction();
+                };
+
+                // Handle both touch and mouse events
+                button.addEventListener('touchstart', startPress, { passive: false });
+                button.addEventListener('touchend', endPress);
+                button.addEventListener('touchcancel', endPress);
+                button.addEventListener('mousedown', startPress);
+                button.addEventListener('mouseup', endPress);
+                button.addEventListener('mouseleave', endPress);
+            };
+
+            // Movement controls (right side)
+            setupMobileButton('upRight',
+                () => this.moveForward = true,
+                () => this.moveForward = false
+            );
+            setupMobileButton('downRight',
+                () => this.moveBackward = true,
+                () => this.moveBackward = false
+            );
+            setupMobileButton('leftRight',
+                () => this.moveLeft = true,
+                () => this.moveLeft = false
+            );
+            setupMobileButton('rightRight',
+                () => this.moveRight = true,
+                () => this.moveRight = false
+            );
+
+            // Altitude and rotation controls (left side)
+            setupMobileButton('upLeft',
+                () => { if (this.drone) this.drone.position.y += 0.2; },
+                () => {}
+            );
+            setupMobileButton('downLeft',
+                () => { if (this.drone) this.drone.position.y = Math.max(2, this.drone.position.y - 0.2); },
+                () => {}
+            );
+            setupMobileButton('leftLeft',
+                () => { if (this.drone) this.drone.rotation.y += 0.05; },
+                () => {}
+            );
+            setupMobileButton('rightLeft',
+                () => { if (this.drone) this.drone.rotation.y -= 0.05; },
+                () => {}
+            );
+
+            // Action buttons with toggle functionality
+            setupMobileButton('sprayButton',
+                () => {
+                    this.isSprayOn = !this.isSprayOn;
+                    if (this.isSprayOn && !this.spraySystem) {
+                        this.createSpraySystem();
+                    }
+                },
+                () => {}
+            );
+
+            setupMobileButton('cameraButton',
+                () => this.toggleCamera(),
+                () => {}
+            );
+
+            // Prevent default touch behaviors
+            document.addEventListener('touchmove', (e) => e.preventDefault(), { passive: false });
+            document.addEventListener('touchstart', (e) => {
+                if (e.target instanceof HTMLButtonElement && e.target.classList.contains('control-button')) {
+                    e.preventDefault();
+                }
+            }, { passive: false });
+
+            // Handle orientation changes
+            const checkOrientation = () => {
+                const rotateMessage = document.getElementById('rotateMessage');
+                if (rotateMessage) {
+                    rotateMessage.style.display = 
+                        (window.orientation === 0 || window.orientation === 180) ? 'flex' : 'none';
+                }
+            };
+
+            window.addEventListener('orientationchange', checkOrientation);
+            checkOrientation(); // Initial check
+        }
     }
 }
 

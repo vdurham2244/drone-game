@@ -2,16 +2,104 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Drone Cleaning Game</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, orientation=landscape">
+    <title>Drone Game</title>
     <style>
         body {
             margin: 0;
             overflow: hidden;
-        }
-        canvas {
+            touch-action: none;
+            position: fixed;
             width: 100%;
             height: 100%;
+        }
+        canvas {
+            display: block;
+        }
+        #mobileControls {
+            display: none;
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            z-index: 1000;
+            pointer-events: none;
+        }
+        .control-set {
+            position: absolute;
+            bottom: 20px;
+            display: grid;
+            grid-template-columns: repeat(3, 70px);
+            grid-template-rows: repeat(3, 70px);
+            gap: 10px;
+            pointer-events: auto;
+        }
+        .left-controls {
+            left: 20px;
+        }
+        .right-controls {
+            right: 20px;
+        }
+        .control-button {
+            width: 70px;
+            height: 70px;
+            border-radius: 35px;
+            border: 2px solid rgba(255, 255, 255, 0.8);
+            background-color: rgba(255, 255, 255, 0.25);
+            color: white;
+            font-size: 14px;
+            touch-action: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 5px;
+            font-family: Arial, sans-serif;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        .control-button:active {
+            background-color: rgba(255, 255, 255, 0.4);
+            transform: scale(0.95);
+        }
+        .action-buttons {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+            pointer-events: auto;
+        }
+        #rotateMessage {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #00B4D8;
+            color: white;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            font-family: Arial, sans-serif;
+            font-size: 24px;
+            z-index: 2000;
+        }
+        @media (max-width: 900px) and (orientation: portrait) {
+            #rotateMessage {
+                display: flex;
+            }
+        }
+        @media (max-width: 900px) {
+            #mobileControls {
+                display: block;
+            }
+            #info {
+                display: none;
+            }
         }
         #info {
             position: absolute;
@@ -30,6 +118,32 @@
     </style>
 </head>
 <body>
+    <div id="rotateMessage">
+        Please rotate your device to landscape mode<br>
+        <span style="font-size: 40px;">📱↻</span>
+    </div>
+    <div id="mobileControls">
+        <div class="control-set left-controls">
+            <div></div>
+            <button class="control-button" id="upLeft">Altitude Up</button>
+            <div></div>
+            <button class="control-button" id="leftLeft">Turn Left</button>
+            <button class="control-button" id="downLeft">Altitude Down</button>
+            <button class="control-button" id="rightLeft">Turn Right</button>
+        </div>
+        <div class="control-set right-controls">
+            <div></div>
+            <button class="control-button" id="upRight">Forward</button>
+            <div></div>
+            <button class="control-button" id="leftRight">Left</button>
+            <button class="control-button" id="downRight">Back</button>
+            <button class="control-button" id="rightRight">Right</button>
+        </div>
+        <div class="action-buttons">
+            <button class="control-button" id="sprayButton">Spray</button>
+            <button class="control-button" id="cameraButton">Camera</button>
+        </div>
+    </div>
     <div id="info">Loading drone model...</div>
     <script type="module" src="/src/main.ts"></script>
 </body>
