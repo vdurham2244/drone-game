@@ -120,7 +120,7 @@ class Game {
 
         // Add logo
         const logo = document.createElement('img');
-        logo.src = import.meta.env.BASE_URL + 'start.png';
+        logo.src = './start.png';
         logo.style.width = '400px';
         logo.style.marginBottom = '40px';
         this.startScreenContainer.appendChild(logo);
@@ -311,12 +311,13 @@ class Game {
 
     private loadDroneModel(): void {
         const dracoLoader = new DRACOLoader();
-        dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
+        dracoLoader.setDecoderPath('./draco/');
         const loader = new GLTFLoader();
         loader.setDRACOLoader(dracoLoader);
 
         console.log('Attempting to load drone model...');
-        loader.load(import.meta.env.BASE_URL + 'sherpaModel.glb', (gltf: GLTF) => {
+        const modelPath = './sherpaModel.glb';
+        loader.load(modelPath, (gltf: GLTF) => {
             console.log('Drone model loaded successfully:', gltf);
             if (gltf.scene) {
                 const droneHolder = new THREE.Object3D();
@@ -853,7 +854,7 @@ class Game {
 
         // Add logo image at the top
         const logoImg = document.createElement('img');
-        logoImg.src = import.meta.env.BASE_URL + 'logo.png';
+        logoImg.src = './logo.png';
         logoImg.style.width = '120px';
         logoImg.style.marginBottom = '20px';
         winElement.appendChild(logoImg);
@@ -921,7 +922,7 @@ class Game {
     private createLogo(): THREE.Mesh {
         const logoGeometry = new THREE.CircleGeometry(1.5, 32);
         const textureLoader = new THREE.TextureLoader();
-        const logoTexture = textureLoader.load(import.meta.env.BASE_URL + 'logo.png');
+        const logoTexture = textureLoader.load('./logo.png');
         logoTexture.minFilter = THREE.LinearFilter;
         logoTexture.magFilter = THREE.LinearFilter;
         
@@ -1016,7 +1017,7 @@ class Game {
 
         // Add logo image
         const logoImg = document.createElement('img');
-        logoImg.src = import.meta.env.BASE_URL + 'logo.png';
+        logoImg.src = './logo.png';
         logoImg.style.width = '100px';
         logoImg.style.marginBottom = '15px';
         popupElement.appendChild(logoImg);

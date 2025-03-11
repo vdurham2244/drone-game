@@ -4,5 +4,13 @@ export default defineConfig({
     server: {
         open: true
     },
-    base: '/drone-game/'
+    base: './',
+    build: {
+        assetsDir: 'assets',
+        rollupOptions: {
+            output: {
+                manualChunks: undefined
+            }
+        }
+    }
 }); 
