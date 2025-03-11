@@ -311,13 +311,12 @@ class Game {
 
     private loadDroneModel(): void {
         const dracoLoader = new DRACOLoader();
-        dracoLoader.setDecoderPath('./draco/');
+        dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
         const loader = new GLTFLoader();
         loader.setDRACOLoader(dracoLoader);
 
         console.log('Attempting to load drone model...');
-        const modelPath = './sherpaModel.glb';
-        loader.load(modelPath, (gltf: GLTF) => {
+        loader.load(import.meta.env.BASE_URL + 'sherpaModel.glb', (gltf: GLTF) => {
             console.log('Drone model loaded successfully:', gltf);
             if (gltf.scene) {
                 const droneHolder = new THREE.Object3D();
