@@ -852,7 +852,7 @@ class Game {
         winElement.style.top = '50%';
         winElement.style.left = '50%';
         winElement.style.transform = 'translate(-50%, -50%)';
-        winElement.style.backgroundColor = 'rgba(0, 255, 0, 0.9)';
+        winElement.style.backgroundColor = '#00B4D8'; // Lucid Bots blue
         winElement.style.padding = '30px';
         winElement.style.borderRadius = '15px';
         winElement.style.color = 'white';
@@ -860,24 +860,41 @@ class Game {
         winElement.style.fontWeight = 'bold';
         winElement.style.textAlign = 'center';
         winElement.style.zIndex = '1000';
+        winElement.style.maxWidth = '500px';
 
+        // Add logo image at the top
+        const logoImg = document.createElement('img');
+        logoImg.src = import.meta.env.BASE_URL + 'logo.png';
+        logoImg.style.width = '120px';
+        logoImg.style.marginBottom = '20px';
+        winElement.appendChild(logoImg);
+
+        // Create message container
+        const messageDiv = document.createElement('div');
+        messageDiv.style.marginBottom = '20px';
+        
         let message = 'Congratulations! You\'ve collected all logos!';
         if (this.gameMode === 'speed') {
             const timerElement = document.getElementById('timer');
             const finalTime = timerElement ? timerElement.textContent?.replace('Time: ', '') : '0:00';
             message += `\nYour time: ${finalTime}`;
+        } else if (this.gameMode === 'learning') {
+            // Add the final learning message
+            message += '\n\nRemember:';
+            messageDiv.innerHTML = message + '<br><br>' + 
+                '"We believe in responsible robotics, paving the way to better lives for everyone.';
         }
-
-        // Create message container
-        const messageDiv = document.createElement('div');
-        messageDiv.textContent = message;
-        messageDiv.style.marginBottom = '15px';
+        
+        messageDiv.style.lineHeight = '1.4';
+        if (this.gameMode === 'speed') {
+            messageDiv.textContent = message;
+        }
         winElement.appendChild(messageDiv);
 
         // Add website link
         const linkDiv = document.createElement('div');
         linkDiv.style.fontSize = '18px';
-        linkDiv.style.marginTop = '10px';
+        linkDiv.style.marginTop = '20px';
         const link = document.createElement('a');
         link.href = 'https://lucidbots.com';
         link.textContent = 'Visit lucidbots.com to learn more!';
@@ -895,8 +912,8 @@ class Game {
         playAgainButton.style.fontSize = '18px';
         playAgainButton.style.borderRadius = '5px';
         playAgainButton.style.border = 'none';
-        playAgainButton.style.backgroundColor = '#00B4D8';
-        playAgainButton.style.color = 'white';
+        playAgainButton.style.backgroundColor = 'white';
+        playAgainButton.style.color = '#00B4D8';
         playAgainButton.style.cursor = 'pointer';
         playAgainButton.style.transition = 'transform 0.2s';
         playAgainButton.onmouseover = () => playAgainButton.style.transform = 'scale(1.05)';
@@ -954,15 +971,15 @@ class Game {
 
         const logoPositions = [
             // Lower the house logo position for better visibility
-            { building: house, offsetY: 18, offsetX: 0, offsetZ: 0, info: "Lucid Bots specializes in autonomous drone technology for industrial applications." },
+            { building: house, offsetY: 18, offsetX: 0, offsetZ: 0, info: "Lucid Bots Inc. is an AI robotics company that builds productive and responsible robots for the exterior cleaning, concrete, and construction industries." },
             // Church steeple
-            { building: church, offsetY: 25, offsetX: 0, offsetZ: 0, info: "Our drones use advanced AI to navigate complex environments safely." },
+            { building: church, offsetY: 25, offsetX: 0, offsetZ: 0, info: "Our drones use advanced AI to learn and navigate complex environments safely." },
             // Above silo
-            { building: tank, offsetY: 16, offsetX: 0, offsetZ: 0, info: "Lucid Bots' drones can perform detailed inspections of industrial equipment." },
+            { building: tank, offsetY: 16, offsetX: 0, offsetZ: 0, info: "Lucid Bots' Sherpa drone could clean any of these buildings in reality as well!" },
             // Highrise
-            { building: highrise, offsetY: 30, offsetX: 0, offsetZ: 4, info: "We provide automated building maintenance solutions using drone swarms." },
+            { building: highrise, offsetY: 30, offsetX: 0, offsetZ: 4, info: "Our mission at Lucid Bots is to elevate efficiency, safety, and humanity by creating the world's most productive drones." },
             // Water tower
-            { building: waterTower, offsetY: 22, offsetX: 0, offsetZ: 0, info: "Our drones are equipped with advanced sensors for infrastructure monitoring." }
+            { building: waterTower, offsetY: 22, offsetX: 0, offsetZ: 0, info: "We also have a surface cleaning robot, known as the Lavobot" }
         ];
 
         logoPositions.forEach(({ building, offsetY, offsetX, offsetZ, info }) => {
