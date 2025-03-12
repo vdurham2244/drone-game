@@ -1,8 +1,8 @@
 // Import Three.js and its types
 import * as THREE from 'three';
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { GLTFLoader, GLTF } from 'three/addons/loaders/GLTFLoader.js';
-import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
+import { GLTFLoader, GLTF } from 'three/examples/jsm/loaders/GLTFLoader';
+import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader';
 
 type OrbitControlsType = typeof OrbitControls;
 
@@ -81,6 +81,7 @@ class Game {
         this.renderer.setPixelRatio(window.devicePixelRatio);
         this.renderer.shadowMap.enabled = true;
         this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        // @ts-ignore
         this.renderer.outputColorSpace = THREE.SRGBColorSpace;
         this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
         this.renderer.toneMappingExposure = 1.0;
@@ -570,7 +571,7 @@ class Game {
             return;
         }
 
-        const positions = this.spraySystem.geometry.attributes.position.array as Float32Array;
+        const positions = (this.spraySystem.geometry.attributes.position as THREE.BufferAttribute).array as Float32Array;
         const particleCount = positions.length / 3;
         
         for (let i = 0; i < particleCount; i++) {
@@ -584,7 +585,7 @@ class Game {
             positions[i3] *= 0.99;
             positions[i3 + 1] *= 0.99;
         }
-        this.spraySystem.geometry.attributes.position.needsUpdate = true;
+        (this.spraySystem.geometry.attributes.position as THREE.BufferAttribute).needsUpdate = true;
     }
 
     private updateCameras(): void {
@@ -753,7 +754,7 @@ class Game {
         sprayContainer.updateMatrixWorld();
         const matrixWorld = sprayContainer.matrixWorld;
 
-        const positions = this.spraySystem.geometry.attributes.position.array as Float32Array;
+        const positions = (this.spraySystem.geometry.attributes.position as THREE.BufferAttribute).array as Float32Array;
         const particleCount = positions.length / 3;
         const collisionThreshold = 0.5;
 
