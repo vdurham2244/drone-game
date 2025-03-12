@@ -1,9 +1,31 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.149.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.149.0/examples/jsm/"
+        }
+    }
+    </script>
+  <script type="module" crossorigin src="./assets/polyfills-BUuj_qXa.js"></script>
+
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, orientation=landscape">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="format-detection" content="telephone=no">
+    <link rel="icon" type="image/png" href="logo.png">
+    <link rel="apple-touch-icon" href="logo.png">
+    <link rel="shortcut icon" type="image/png" href="logo.png">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Drone Game</title>
+
+    <!-- Load Three.js and dependencies -->
+    <script async src="https://unpkg.com/es-module-shims@1.8.0/dist/es-module-shims.js"></script>
+
+
     <style>
         body {
             margin: 0;
@@ -115,10 +137,70 @@
             max-width: 300px;
             box-shadow: 0 0 10px rgba(0,0,0,0.5);
         }
+        #errorContainer {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(255, 0, 0, 0.9);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            z-index: 3000;
+            max-width: 80%;
+            text-align: center;
+            font-family: Arial, sans-serif;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+        }
+        #errorDetails {
+            margin-top: 10px;
+            font-size: 14px;
+            white-space: pre-wrap;
+            word-break: break-word;
+            max-height: 200px;
+            overflow-y: auto;
+            text-align: left;
+            background: rgba(0,0,0,0.3);
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .error-button {
+            margin: 15px 5px 0 5px;
+            padding: 8px 16px;
+            background-color: white;
+            color: red;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        #loadingProgress {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            z-index: 2500;
+            text-align: center;
+            font-family: Arial, sans-serif;
+        }
     </style>
-  <script type="module" crossorigin src="./assets/index-BnfjCvBs.js"></script>
+  <script type="module" crossorigin src="./assets/index-BJEGKGTH.js"></script>
+  <script type="module">import.meta.url;import("_").catch(()=>1);(async function*(){})().next();if(location.protocol!="file:"){window.__vite_is_modern_browser=true}</script>
+  <script type="module">!function(){if(window.__vite_is_modern_browser)return;console.warn("vite: loading legacy chunks, syntax error above and the same error below should be ignored");var e=document.getElementById("vite-legacy-polyfill"),n=document.createElement("script");n.src=e.src,n.onload=function(){System.import(document.getElementById('vite-legacy-entry').getAttribute('data-src'))},document.body.appendChild(n)}();</script>
 </head>
 <body>
+    <div id="loadingProgress">Loading game resources... <span id="loadingStatus">0%</span></div>
+    <div id="errorContainer">
+        <h3 id="errorTitle">Error Loading Game</h3>
+        <div id="errorDetails"></div>
+        <button class="error-button" onclick="retryLoading()">Retry</button>
+        <button class="error-button" onclick="clearAndRetry()">Clear Cache & Retry</button>
+        <button class="error-button" onclick="document.getElementById('errorContainer').style.display='none'">Dismiss</button>
+    </div>
     <div id="rotateMessage">
         Please rotate your device to landscape mode<br>
         <span style="font-size: 40px;">📱↻</span>
@@ -146,5 +228,8 @@
         </div>
     </div>
     <div id="info">Loading drone model...</div>
+  <script nomodule>!function(){var e=document,t=e.createElement("script");if(!("noModule"in t)&&"onbeforeload"in t){var n=!1;e.addEventListener("beforeload",(function(e){if(e.target===t)n=!0;else if(!e.target.hasAttribute("nomodule")||!n)return;e.preventDefault()}),!0),t.type="module",t.src=".",e.head.appendChild(t),t.remove()}}();</script>
+  <script nomodule crossorigin id="vite-legacy-polyfill" src="./assets/polyfills-legacy-BcklmKWN.js"></script>
+  <script nomodule crossorigin id="vite-legacy-entry" data-src="./assets/index-legacy-B6B9qIZv.js">System.import(document.getElementById('vite-legacy-entry').getAttribute('data-src'))</script>
 </body>
 </html> 

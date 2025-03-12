@@ -2,8 +2,27 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, orientation=landscape">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="format-detection" content="telephone=no">
+    <link rel="icon" type="image/png" href="logo.png">
+    <link rel="apple-touch-icon" href="logo.png">
+    <link rel="shortcut icon" type="image/png" href="logo.png">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Drone Game</title>
+
+    <!-- Load Three.js and dependencies -->
+    <script async src="https://unpkg.com/es-module-shims@1.8.0/dist/es-module-shims.js"></script>
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.149.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.149.0/examples/jsm/"
+        }
+    }
+    </script>
+
     <style>
         body {
             margin: 0;
@@ -115,9 +134,67 @@
             max-width: 300px;
             box-shadow: 0 0 10px rgba(0,0,0,0.5);
         }
+        #errorContainer {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(255, 0, 0, 0.9);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            z-index: 3000;
+            max-width: 80%;
+            text-align: center;
+            font-family: Arial, sans-serif;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+        }
+        #errorDetails {
+            margin-top: 10px;
+            font-size: 14px;
+            white-space: pre-wrap;
+            word-break: break-word;
+            max-height: 200px;
+            overflow-y: auto;
+            text-align: left;
+            background: rgba(0,0,0,0.3);
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .error-button {
+            margin: 15px 5px 0 5px;
+            padding: 8px 16px;
+            background-color: white;
+            color: red;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        #loadingProgress {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            z-index: 2500;
+            text-align: center;
+            font-family: Arial, sans-serif;
+        }
     </style>
 </head>
 <body>
+    <div id="loadingProgress">Loading game resources... <span id="loadingStatus">0%</span></div>
+    <div id="errorContainer">
+        <h3 id="errorTitle">Error Loading Game</h3>
+        <div id="errorDetails"></div>
+        <button class="error-button" onclick="retryLoading()">Retry</button>
+        <button class="error-button" onclick="clearAndRetry()">Clear Cache & Retry</button>
+        <button class="error-button" onclick="document.getElementById('errorContainer').style.display='none'">Dismiss</button>
+    </div>
     <div id="rotateMessage">
         Please rotate your device to landscape mode<br>
         <span style="font-size: 40px;">📱↻</span>
@@ -145,6 +222,130 @@
         </div>
     </div>
     <div id="info">Loading drone model...</div>
-    <script type="module" src="/src/main.ts"></script>
+    <script type="module">
+        import * as THREE from 'three';
+        
+        let gameLoaded = false;
+        let loadingErrors = [];
+        let resourcesLoaded = 0;
+        let totalResources = 4;
+
+        function updateLoadingProgress(progress) {
+            const loadingStatus = document.getElementById('loadingStatus');
+            if (loadingStatus) {
+                loadingStatus.textContent = Math.round(progress * 100) + '%';
+            }
+        }
+
+        function showError(title, details) {
+            const errorContainer = document.getElementById('errorContainer');
+            const errorTitle = document.getElementById('errorTitle');
+            const errorDetails = document.getElementById('errorDetails');
+            
+            loadingErrors.push({ title, details, time: new Date().toISOString() });
+            errorContainer.style.display = 'block';
+            errorTitle.textContent = title;
+            errorDetails.textContent = loadingErrors
+                .map(err => `[${err.time}]\n${err.title}\n${err.details}\n`)
+                .join('\n---\n\n');
+
+            const loadingProgress = document.getElementById('loadingProgress');
+            if (loadingProgress) {
+                loadingProgress.style.display = 'none';
+            }
+        }
+
+        window.retryLoading = function() {
+            if (!gameLoaded) {
+                loadingErrors = [];
+                document.getElementById('errorContainer').style.display = 'none';
+                document.getElementById('loadingProgress').style.display = 'block';
+                loadGame();
+            }
+        }
+
+        window.clearAndRetry = function() {
+            localStorage.clear();
+            sessionStorage.clear();
+            const cookies = document.cookie.split(";");
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i];
+                const eqPos = cookie.indexOf("=");
+                const name = eqPos > -1 ? cookie.substr(0, eqPos) : cookie;
+                document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT";
+            }
+            window.location.reload();
+        }
+
+        function checkWebGL() {
+            const canvas = document.createElement('canvas');
+            try {
+                const gl = canvas.getContext('webgl', { 
+                    powerPreference: "default",
+                    failIfMajorPerformanceCaveat: false,
+                    antialias: false
+                });
+                if (!gl) return false;
+                return true;
+            } catch (e) {
+                return false;
+            }
+        }
+
+        async function loadGame() {
+            try {
+                if (!checkWebGL()) {
+                    showError('WebGL Error', 'WebGL is not supported or disabled in your browser');
+                    return;
+                }
+
+                // Load game script
+                const gameScript = document.createElement('script');
+                gameScript.type = 'module';
+                gameScript.src = './src/main.ts';
+                
+                gameScript.onerror = (error) => {
+                    console.error('Failed to load game script:', error);
+                    showError('Game Loading Error', 'Failed to load game script. Please check console for details.');
+                };
+                
+                gameScript.onload = () => {
+                    gameLoaded = true;
+                    document.getElementById('loadingProgress').style.display = 'none';
+                };
+                
+                document.body.appendChild(gameScript);
+            } catch (error) {
+                showError('Loading Error', error.message || 'Unknown error occurred');
+            }
+        }
+
+        // Start loading when everything is ready
+        window.addEventListener('load', () => {
+            try {
+                // Verify Three.js is available
+                if (typeof THREE === 'undefined') {
+                    throw new Error('Three.js failed to load');
+                }
+                loadGame();
+            } catch (error) {
+                showError('Loading Error', error.message || 'Failed to initialize game');
+            }
+        });
+
+        // Global error handlers
+        window.addEventListener('error', function(event) {
+            if (!gameLoaded) {
+                showError('JavaScript Error', `${event.message}\nFile: ${event.filename}\nLine: ${event.lineno}\nColumn: ${event.colno}`);
+            }
+            return false;
+        });
+
+        window.addEventListener('unhandledrejection', function(event) {
+            if (!gameLoaded) {
+                showError('Loading Error', event.reason?.message || 'Unknown error occurred');
+            }
+        });
+    </script>
 </body>
 </html> 

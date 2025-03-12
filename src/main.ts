@@ -1,7 +1,11 @@
+// Import Three.js and its types
 import * as THREE from 'three';
-import { GLTF, GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { GLTFLoader, GLTF } from 'three/addons/loaders/GLTFLoader.js';
+import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
+
+type OrbitControlsType = typeof OrbitControls;
+
 import { ResidentialBuilding } from './buildings/ResidentialBuilding';
 import { ChurchBuilding } from './buildings/ChurchBuilding';
 import { IndustrialTank } from './buildings/IndustrialTank';
@@ -18,7 +22,9 @@ class Game {
     private renderer: THREE.WebGLRenderer;
     private drone: THREE.Object3D | null = null;
     private buildings: Building[] = [];
-    private controls: OrbitControls;
+    private controls: any;
+    private cleaningRadius = 2;
+    private cleaningPower = 1;
     private isSprayOn: boolean = false;
     private spraySystem: THREE.Points | null = null;
     private propellers: THREE.Object3D[] = [];
@@ -33,10 +39,6 @@ class Game {
     private gameStarted: boolean = false;
     private gameMode: 'learning' | 'speed' | null = null;
     private startScreenContainer: HTMLDivElement | null = null;
-    private moveForward: boolean = false;
-    private moveBackward: boolean = false;
-    private moveLeft: boolean = false;
-    private moveRight: boolean = false;
 
     constructor() {
         // Scene setup
@@ -73,7 +75,7 @@ class Game {
         this.renderer = new THREE.WebGLRenderer({ 
             antialias: true,
             alpha: true,
-            powerPreference: "high-performance"
+            powerPreference: "default"
         });
         this.renderer.setSize(window.innerWidth, window.innerHeight);
         this.renderer.setPixelRatio(window.devicePixelRatio);
@@ -98,9 +100,6 @@ class Game {
 
         // Start animation loop
         this.animate();
-
-        // Setup touch controls
-        this.setupControls();
     }
 
     private createStartScreen(): void {
@@ -120,7 +119,7 @@ class Game {
 
         // Add logo
         const logo = document.createElement('img');
-        logo.src = './start.png';
+        logo.src = import.meta.env.BASE_URL + 'start.png';
         logo.style.width = '400px';
         logo.style.marginBottom = '40px';
         this.startScreenContainer.appendChild(logo);
@@ -316,78 +315,81 @@ class Game {
         loader.setDRACOLoader(dracoLoader);
 
         console.log('Attempting to load drone model...');
-        loader.load(import.meta.env.BASE_URL + 'sherpaModel.glb', (gltf: GLTF) => {
-            console.log('Drone model loaded successfully:', gltf);
-            if (gltf.scene) {
+        loader.load(
+            import.meta.env.BASE_URL + 'sherpaModel.glb',
+            (gltf: GLTF) => {
+                console.log('Drone model loaded successfully:', gltf);
+                if (gltf.scene) {
+                    const droneHolder = new THREE.Object3D();
+                    const droneModel = gltf.scene;
+                    // Rotate so it faces forward
+                    droneModel.rotation.x = -Math.PI / 2;
+                    droneModel.scale.set(0.5, 0.5, 0.5);
+                    
+                    // Traverse to set shadow properties and find propellers
+                    droneModel.traverse((child: THREE.Object3D) => {
+                        if (child instanceof THREE.Mesh) {
+                            child.castShadow = true;
+                            child.receiveShadow = true;
+                            if (child.material && child.material.transparent) {
+                                child.material.opacity = 0.9;
+                                child.material.side = THREE.DoubleSide;
+                            }
+                            if (child.name.toLowerCase().includes('propeller') || 
+                                child.name.toLowerCase().includes('prop') || 
+                                child.name.toLowerCase().includes('rotor')) {
+                                console.log('Found propeller:', child.name);
+                                this.propellers.push(child);
+                            }
+                        }
+                    });
+
+                    droneHolder.add(droneModel);
+                    droneHolder.position.set(0, 5, 0);
+
+                    // Add drone lights
+                    const droneSpotLight = new THREE.SpotLight(0xffffff, 1);
+                    droneSpotLight.position.set(0, 0.5, 0);
+                    droneSpotLight.angle = Math.PI / 6;
+                    droneSpotLight.penumbra = 0.5;
+                    droneSpotLight.decay = 2;
+                    droneSpotLight.distance = 10;
+                    droneHolder.add(droneSpotLight);
+                    const dronePointLight = new THREE.PointLight(0xffffff, 0.5, 5);
+                    droneHolder.add(dronePointLight);
+
+                    this.drone = droneHolder;
+                    this.scene.add(this.drone);
+                    console.log('Drone added to scene at position:', this.drone.position);
+
+                    dracoLoader.dispose();
+                } else {
+                    console.error('No scene found in the loaded model');
+                }
+            },
+            (progress: { loaded: number; total: number }) => {
+                const percentComplete = Math.round((progress.loaded / progress.total) * 100);
+                console.log(`Loading progress: ${percentComplete}%`);
+            },
+            (err: unknown) => {
+                console.error('Error loading drone model:', err);
                 const droneHolder = new THREE.Object3D();
-                const droneModel = gltf.scene;
-                // Rotate so it faces forward
-                droneModel.rotation.x = -Math.PI / 2;
-                droneModel.scale.set(0.5, 0.5, 0.5);
-                
-                // Traverse to set shadow properties and find propellers
-                droneModel.traverse((child) => {
-                    if (child instanceof THREE.Mesh) {
-                        child.castShadow = true;
-                        child.receiveShadow = true;
-                        if (child.material && child.material.transparent) {
-                            child.material.opacity = 0.9;
-                            child.material.side = THREE.DoubleSide;
-                        }
-                        if (child.name.toLowerCase().includes('propeller') || 
-                            child.name.toLowerCase().includes('prop') || 
-                            child.name.toLowerCase().includes('rotor')) {
-                            console.log('Found propeller:', child.name);
-                            this.propellers.push(child);
-                        }
-                    }
+                const geometry = new THREE.BoxGeometry(2, 1, 2);
+                const material = new THREE.MeshPhongMaterial({
+                    color: 0x3366ff,
+                    transparent: true,
+                    opacity: 0.8
                 });
-
-                droneHolder.add(droneModel);
+                const fallbackCube = new THREE.Mesh(geometry, material);
+                droneHolder.add(fallbackCube);
                 droneHolder.position.set(0, 5, 0);
-
-                // Add drone lights
-                const droneSpotLight = new THREE.SpotLight(0xffffff, 1);
-                droneSpotLight.position.set(0, 0.5, 0);
-                droneSpotLight.angle = Math.PI / 6;
-                droneSpotLight.penumbra = 0.5;
-                droneSpotLight.decay = 2;
-                droneSpotLight.distance = 10;
-                droneHolder.add(droneSpotLight);
-                const dronePointLight = new THREE.PointLight(0xffffff, 0.5, 5);
-                droneHolder.add(dronePointLight);
-
+                const droneLight = new THREE.PointLight(0xffffff, 0.5, 10);
+                droneHolder.add(droneLight);
                 this.drone = droneHolder;
                 this.scene.add(this.drone);
-                console.log('Drone added to scene at position:', this.drone.position);
-
-                dracoLoader.dispose();
-            } else {
-                console.error('No scene found in the loaded model');
+                console.log('Fallback drone cube added to scene');
             }
-        },
-        (progress) => {
-            const percentComplete = Math.round((progress.loaded / progress.total) * 100);
-            console.log(`Loading progress: ${percentComplete}%`);
-        },
-        (error) => {
-            console.error('Error loading drone model:', error);
-            const droneHolder = new THREE.Object3D();
-            const geometry = new THREE.BoxGeometry(2, 1, 2);
-            const material = new THREE.MeshPhongMaterial({
-                color: 0x3366ff,
-                transparent: true,
-                opacity: 0.8
-            });
-            const fallbackCube = new THREE.Mesh(geometry, material);
-            droneHolder.add(fallbackCube);
-            droneHolder.position.set(0, 5, 0);
-            const droneLight = new THREE.PointLight(0xffffff, 0.5, 10);
-            droneHolder.add(droneLight);
-            this.drone = droneHolder;
-            this.scene.add(this.drone);
-            console.log('Fallback drone cube added to scene');
-        });
+        );
     }
 
     private addBuildings(): void {
@@ -442,17 +444,21 @@ class Game {
     private onKeyDown(event: KeyboardEvent): void {
         this.keysPressed[event.key.toLowerCase()] = true;
         switch (event.key.toLowerCase()) {
-            case 'w': case 'arrowup':    this.moveForward = true; break;
-            case 's': case 'arrowdown':  this.moveBackward = true; break;
-            case 'a': case 'arrowleft':  this.moveLeft = true; break;
-            case 'd': case 'arrowright': this.moveRight = true; break;
-            case ' ':                    
+            case ' ':
+                // Toggle the sprayer
                 this.isSprayOn = !this.isSprayOn;
                 if (this.isSprayOn && !this.spraySystem) {
                     this.createSpraySystem();
                 }
                 break;
-            case 'v':                    this.toggleCamera(); break;
+            case 'c':
+                if (this.isSprayOn) {
+                    this.clean();
+                }
+                break;
+            case 'v':
+                this.toggleCamera();
+                break;
         }
     }
 
@@ -478,10 +484,10 @@ class Game {
 
         // Horizontal movement (arrow keys and Q/E for strafing)
         let moveX = 0, moveZ = 0;
-        if (this.keysPressed['arrowdown'] || this.moveBackward) moveZ -= 1;
-        if (this.keysPressed['arrowup'] || this.moveForward) moveZ += 1;
-        if (this.keysPressed['arrowleft'] || this.moveLeft) moveX += 1;
-        if (this.keysPressed['arrowright'] || this.moveRight) moveX -= 1;
+        if (this.keysPressed['arrowdown']) moveZ -= 1;
+        if (this.keysPressed['arrowup']) moveZ += 1;
+        if (this.keysPressed['arrowleft']) moveX += 1;
+        if (this.keysPressed['arrowright']) moveX -= 1;
         if (this.keysPressed['q']) moveX -= 1;
         if (this.keysPressed['e']) moveX += 1;
 
@@ -663,6 +669,18 @@ class Game {
         
         this.controls.update();
         this.renderer.render(this.scene, this.activeCamera);
+    }
+
+    private clean(): void {
+        if (!this.drone || !this.isSprayOn) return;
+        this.buildings.forEach(building => {
+            const buildingPos = building.getMesh().position;
+            const dronePos = this.drone!.position;
+            const distance = new THREE.Vector3(buildingPos.x, buildingPos.y, buildingPos.z).distanceTo(dronePos);
+            if (distance < this.cleaningRadius) {
+                building.clean(this.cleaningPower);
+            }
+        });
     }
 
     private toggleCamera(): void {
@@ -853,7 +871,7 @@ class Game {
 
         // Add logo image at the top
         const logoImg = document.createElement('img');
-        logoImg.src = './logo.png';
+        logoImg.src = import.meta.env.BASE_URL + 'logo.png';
         logoImg.style.width = '120px';
         logoImg.style.marginBottom = '20px';
         winElement.appendChild(logoImg);
@@ -921,7 +939,7 @@ class Game {
     private createLogo(): THREE.Mesh {
         const logoGeometry = new THREE.CircleGeometry(1.5, 32);
         const textureLoader = new THREE.TextureLoader();
-        const logoTexture = textureLoader.load('./logo.png');
+        const logoTexture = textureLoader.load(import.meta.env.BASE_URL + 'logo.png');
         logoTexture.minFilter = THREE.LinearFilter;
         logoTexture.magFilter = THREE.LinearFilter;
         
@@ -1016,7 +1034,7 @@ class Game {
 
         // Add logo image
         const logoImg = document.createElement('img');
-        logoImg.src = './logo.png';
+        logoImg.src = import.meta.env.BASE_URL + 'logo.png';
         logoImg.style.width = '100px';
         logoImg.style.marginBottom = '15px';
         popupElement.appendChild(logoImg);
@@ -1046,150 +1064,6 @@ class Game {
         popupElement.appendChild(button);
 
         document.body.appendChild(popupElement);
-    }
-
-    private setupControls(): void {
-        // Check if mobile
-        const isMobile = window.innerWidth <= 900;
-
-        if (!isMobile) {
-            // Desktop keyboard controls
-            document.addEventListener('keydown', (event) => {
-                switch (event.key.toLowerCase()) {
-                    case 'w': case 'arrowup':    this.moveForward = true; break;
-                    case 's': case 'arrowdown':  this.moveBackward = true; break;
-                    case 'a': case 'arrowleft':  this.moveLeft = true; break;
-                    case 'd': case 'arrowright': this.moveRight = true; break;
-                    case ' ':                    
-                        this.isSprayOn = !this.isSprayOn;
-                        if (this.isSprayOn && !this.spraySystem) {
-                            this.createSpraySystem();
-                        }
-                        break;
-                    case 'v':                    this.toggleCamera(); break;
-                }
-            });
-
-            document.addEventListener('keyup', (event) => {
-                switch (event.key.toLowerCase()) {
-                    case 'w': case 'arrowup':    this.moveForward = false; break;
-                    case 's': case 'arrowdown':  this.moveBackward = false; break;
-                    case 'a': case 'arrowleft':  this.moveLeft = false; break;
-                    case 'd': case 'arrowright': this.moveRight = false; break;
-                }
-            });
-        } else {
-            // Mobile controls with improved touch handling
-            const setupMobileButton = (id: string, startAction: () => void, endAction: () => void) => {
-                const button = document.getElementById(id);
-                if (!button) return;
-
-                let isPressed = false;
-                let pressInterval: number | null = null;
-
-                const startPress = (e: Event) => {
-                    e.preventDefault();
-                    if (isPressed) return;
-                    isPressed = true;
-                    startAction();
-                    
-                    // For continuous actions, repeat the action every frame
-                    pressInterval = window.setInterval(() => {
-                        if (isPressed) startAction();
-                    }, 16); // ~60fps
-                };
-
-                const endPress = (e: Event) => {
-                    e.preventDefault();
-                    isPressed = false;
-                    if (pressInterval) {
-                        window.clearInterval(pressInterval);
-                        pressInterval = null;
-                    }
-                    endAction();
-                };
-
-                // Handle both touch and mouse events
-                button.addEventListener('touchstart', startPress, { passive: false });
-                button.addEventListener('touchend', endPress);
-                button.addEventListener('touchcancel', endPress);
-                button.addEventListener('mousedown', startPress);
-                button.addEventListener('mouseup', endPress);
-                button.addEventListener('mouseleave', endPress);
-            };
-
-            // Movement controls (right side)
-            setupMobileButton('upRight',
-                () => this.moveForward = true,
-                () => this.moveForward = false
-            );
-            setupMobileButton('downRight',
-                () => this.moveBackward = true,
-                () => this.moveBackward = false
-            );
-            setupMobileButton('leftRight',
-                () => this.moveLeft = true,
-                () => this.moveLeft = false
-            );
-            setupMobileButton('rightRight',
-                () => this.moveRight = true,
-                () => this.moveRight = false
-            );
-
-            // Altitude and rotation controls (left side)
-            setupMobileButton('upLeft',
-                () => { if (this.drone) this.drone.position.y += 0.2; },
-                () => {}
-            );
-            setupMobileButton('downLeft',
-                () => { if (this.drone) this.drone.position.y = Math.max(2, this.drone.position.y - 0.2); },
-                () => {}
-            );
-            setupMobileButton('leftLeft',
-                () => { if (this.drone) this.drone.rotation.y += 0.05; },
-                () => {}
-            );
-            setupMobileButton('rightLeft',
-                () => { if (this.drone) this.drone.rotation.y -= 0.05; },
-                () => {}
-            );
-
-            // Action buttons with toggle functionality
-            setupMobileButton('sprayButton',
-                () => {
-                    this.isSprayOn = !this.isSprayOn;
-                    if (this.isSprayOn && !this.spraySystem) {
-                        this.createSpraySystem();
-                    }
-                },
-                () => {}
-            );
-
-            setupMobileButton('cameraButton',
-                () => this.toggleCamera(),
-                () => {}
-            );
-
-            // Prevent default touch behaviors
-            document.addEventListener('touchmove', (e) => e.preventDefault(), { passive: false });
-            document.addEventListener('touchstart', (e) => {
-                if (e.target instanceof HTMLButtonElement && e.target.classList.contains('control-button')) {
-                    e.preventDefault();
-                }
-            }, { passive: false });
-
-            // Handle orientation changes
-            const checkOrientation = () => {
-                const rotateMessage = document.getElementById('rotateMessage');
-                if (rotateMessage) {
-                    rotateMessage.style.display = 
-                        (window.orientation === 0 || window.orientation === 180) ? 'flex' : 'none';
-                }
-            };
-
-            window.addEventListener('orientationchange', checkOrientation);
-            checkOrientation(); // Initial check
-        }
     }
 }
 
