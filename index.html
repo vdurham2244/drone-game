@@ -324,7 +324,7 @@
                 // Load game script
                 const gameScript = document.createElement('script');
                 gameScript.type = 'module';
-                gameScript.src = './src/main.ts';
+                gameScript.src = import.meta.env.BASE_URL + 'main.js';
                 
                 gameScript.onerror = (error) => {
                     console.error('Failed to load game script:', error);
