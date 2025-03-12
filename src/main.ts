@@ -831,7 +831,7 @@ class Game {
                 sparkleMaterial.dispose();
                 return;
             }
-            const positions = sparkleGeometry.attributes.position.array as Float32Array;
+            const positions = (sparkleGeometry.attributes.position as THREE.BufferAttribute).array as Float32Array;
             for (let i = 0; i < sparkleCount; i++) {
                 const i3 = i * 3;
                 positions[i3] += sparkleVelocities[i].x * 0.1;
