@@ -135,15 +135,22 @@
             max-width: 80%;
             text-align: center;
             font-family: Arial, sans-serif;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
         }
         #errorDetails {
             margin-top: 10px;
             font-size: 14px;
             white-space: pre-wrap;
             word-break: break-word;
+            max-height: 200px;
+            overflow-y: auto;
+            text-align: left;
+            background: rgba(0,0,0,0.3);
+            padding: 10px;
+            border-radius: 5px;
         }
         .error-button {
-            margin-top: 15px;
+            margin: 15px 5px 0 5px;
             padding: 8px 16px;
             background-color: white;
             color: red;
@@ -151,16 +158,33 @@
             border-radius: 5px;
             cursor: pointer;
         }
+        #loadingProgress {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            z-index: 2500;
+            text-align: center;
+            font-family: Arial, sans-serif;
+        }
     </style>
-  <script type="module" crossorigin src="/drone-game/assets/index-2f5d5b64.js"></script>
+  <script type="module" crossorigin src="/drone-game/assets/index-864f36f4.js"></script>
+  <link rel="modulepreload" crossorigin href="/drone-game/assets/three-b237c980.js">
+  <link rel="modulepreload" crossorigin href="/drone-game/assets/three-examples-3c8e45a0.js">
   <script type="module">import.meta.url;import("_").catch(()=>1);async function* g(){};if(location.protocol!="file:"){window.__vite_is_modern_browser=true}</script>
   <script type="module">!function(){if(window.__vite_is_modern_browser)return;console.warn("vite: loading legacy chunks, syntax error above and the same error below should be ignored");var e=document.getElementById("vite-legacy-polyfill"),n=document.createElement("script");n.src=e.src,n.onload=function(){System.import(document.getElementById('vite-legacy-entry').getAttribute('data-src'))},document.body.appendChild(n)}();</script>
 </head>
 <body>
+    <div id="loadingProgress">Loading game resources... <span id="loadingStatus">0%</span></div>
     <div id="errorContainer">
         <h3 id="errorTitle">Error Loading Game</h3>
         <div id="errorDetails"></div>
         <button class="error-button" onclick="window.location.reload()">Retry</button>
+        <button class="error-button" onclick="localStorage.clear(); window.location.reload()">Clear Cache & Retry</button>
         <button class="error-button" onclick="document.getElementById('errorContainer').style.display='none'">Dismiss</button>
     </div>
     <div id="rotateMessage">
@@ -191,24 +215,76 @@
     </div>
     <div id="info">Loading drone model...</div>
     <script>
-        window.onerror = function(msg, url, line, col, error) {
+        // Track loading states
+        let loadingErrors = [];
+        let resourcesLoaded = 0;
+        let totalResources = 4; // Update this based on your total resources (models, textures, etc.)
+        
+        function updateLoadingProgress(progress) {
+            const loadingStatus = document.getElementById('loadingStatus');
+            if (loadingStatus) {
+                loadingStatus.textContent = Math.round(progress * 100) + '%';
+            }
+        }
+
+        function showError(title, details) {
             const errorContainer = document.getElementById('errorContainer');
+            const errorTitle = document.getElementById('errorTitle');
             const errorDetails = document.getElementById('errorDetails');
+            
+            // Store error
+            loadingErrors.push({ title, details, time: new Date().toISOString() });
+            
+            // Show error container
             errorContainer.style.display = 'block';
-            errorDetails.textContent = `Error: ${msg}\nLine: ${line}\nDetails: ${error?.stack || 'No stack trace available'}`;
+            errorTitle.textContent = title;
+            
+            // Show all accumulated errors
+            errorDetails.textContent = loadingErrors
+                .map(err => `[${err.time}]\n${err.title}\n${err.details}\n`)
+                .join('\n---\n\n');
+            
+            // Hide loading progress
+            const loadingProgress = document.getElementById('loadingProgress');
+            if (loadingProgress) {
+                loadingProgress.style.display = 'none';
+            }
+        }
+
+        // Global error handler
+        window.onerror = function(msg, url, line, col, error) {
+            showError('JavaScript Error', `Error: ${msg}\nFile: ${url}\nLine: ${line}\nColumn: ${col}\nStack: ${error?.stack || 'No stack trace'}`);
             return false;
         };
 
+        // Promise rejection handler
         window.addEventListener('unhandledrejection', function(event) {
-            const errorContainer = document.getElementById('errorContainer');
-            const errorDetails = document.getElementById('errorDetails');
-            errorContainer.style.display = 'block';
-            errorDetails.textContent = `Failed to load resource: ${event.reason}\n${event.reason?.stack || ''}`;
+            showError('Resource Loading Error', `Failed to load resource:\n${event.reason}\nStack: ${event.reason?.stack || 'No stack trace'}`);
         });
+
+        // Monitor resource loading
+        window.addEventListener('load', function() {
+            updateLoadingProgress(1);
+            document.getElementById('loadingProgress').style.display = 'none';
+        });
+
+        // Safari-specific checks
+        if (navigator.userAgent.includes('Safari') && !navigator.userAgent.includes('Chrome')) {
+            // Check WebGL support
+            try {
+                const canvas = document.createElement('canvas');
+                const gl = canvas.getContext('webgl2') || canvas.getContext('webgl');
+                if (!gl) {
+                    showError('WebGL Not Available', 'Your browser does not support WebGL, which is required to run this game.');
+                }
+            } catch (e) {
+                showError('WebGL Error', `Failed to initialize WebGL: ${e.message}`);
+            }
+        }
     </script>
     
   <script nomodule>!function(){var e=document,t=e.createElement("script");if(!("noModule"in t)&&"onbeforeload"in t){var n=!1;e.addEventListener("beforeload",(function(e){if(e.target===t)n=!0;else if(!e.target.hasAttribute("nomodule")||!n)return;e.preventDefault()}),!0),t.type="module",t.src=".",e.head.appendChild(t),t.remove()}}();</script>
-  <script nomodule crossorigin id="vite-legacy-polyfill" src="/drone-game/assets/polyfills-legacy-0007ce2f.js"></script>
-  <script nomodule crossorigin id="vite-legacy-entry" data-src="/drone-game/assets/index-legacy-249195a4.js">System.import(document.getElementById('vite-legacy-entry').getAttribute('data-src'))</script>
+  <script nomodule crossorigin id="vite-legacy-polyfill" src="/drone-game/assets/polyfills-legacy-3a50d2a4.js"></script>
+  <script nomodule crossorigin id="vite-legacy-entry" data-src="/drone-game/assets/index-legacy-ce10887e.js">System.import(document.getElementById('vite-legacy-entry').getAttribute('data-src'))</script>
 </body>
 </html> 
