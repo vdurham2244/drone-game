@@ -6,9 +6,9 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="format-detection" content="telephone=no">
-    <link rel="icon" type="image/png" href="/drone-game/logo.png">
-    <link rel="apple-touch-icon" href="/drone-game/logo.png">
-    <link rel="shortcut icon" type="image/png" href="/drone-game/logo.png">
+    <link rel="icon" type="image/png" href="logo.png">
+    <link rel="apple-touch-icon" href="logo.png">
+    <link rel="shortcut icon" type="image/png" href="logo.png">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Drone Game</title>
     
@@ -180,7 +180,7 @@
             font-family: Arial, sans-serif;
         }
     </style>
-  <script async type="module" crossorigin src="/drone-game/assets/index-daf95610.js"></script>
+  <script async type="module" crossorigin src="./assets/index-daf95610.js"></script>
 </head>
 <body>
     <div id="loadingProgress">Loading game resources... <span id="loadingStatus">0%</span></div>
@@ -301,9 +301,10 @@
             setTimeout(() => {
                 const script = document.createElement('script');
                 script.type = 'module';
-                script.src = '/drone-game/src/main.ts';
+                script.src = '/assets/main.js';
                 script.onerror = (error) => {
-                    showError('Game Loading Error', 'Failed to load game script: ' + error.message);
+                    console.error('Failed to load game script:', error);
+                    showError('Game Loading Error', 'Failed to load game script. Please check console for details.');
                 };
                 script.onload = () => {
                     gameLoaded = true;
@@ -331,6 +332,6 @@
         });
     </script>
   <script nomodule>!function(){var e=document,t=e.createElement("script");if(!("noModule"in t)&&"onbeforeload"in t){var n=!1;e.addEventListener("beforeload",(function(e){if(e.target===t)n=!0;else if(!e.target.hasAttribute("nomodule")||!n)return;e.preventDefault()}),!0),t.type="module",t.src=".",e.head.appendChild(t),t.remove()}}();</script>
-  <script nomodule crossorigin id="vite-legacy-entry" data-src="/drone-game/assets/index-legacy-518b8698.js">System.import(document.getElementById('vite-legacy-entry').getAttribute('data-src'))</script>
+  <script nomodule crossorigin id="vite-legacy-entry" data-src="./assets/index-legacy-518b8698.js">System.import(document.getElementById('vite-legacy-entry').getAttribute('data-src'))</script>
 </body>
 </html> 
