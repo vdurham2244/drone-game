@@ -6,8 +6,23 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="format-detection" content="telephone=no">
+    <link rel="icon" type="image/png" href="/logo.png">
+    <link rel="apple-touch-icon" href="/logo.png">
+    <link rel="shortcut icon" type="image/png" href="/logo.png">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Drone Cleaning Game</title>
+    <title>Drone Game</title>
+
+    <!-- Load Three.js and dependencies -->
+    <script async src="https://unpkg.com/es-module-shims@1.8.0/dist/es-module-shims.js"></script>
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.149.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.149.0/examples/jsm/"
+        }
+    }
+    </script>
+
     <style>
         body {
             margin: 0;
@@ -153,6 +168,19 @@
         </div>
     </div>
     <div id="info">Loading drone model...</div>
-    <script type="module" src="/src/main.ts"></script>
+    <script type="module">
+        // Dynamically load the main script
+        const script = document.createElement('script');
+        script.type = 'module';
+        
+        // Check if we're in development or production
+        if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+            script.src = '/src/main.ts';
+        } else {
+            script.src = '/drone-game/assets/main.js';
+        }
+        
+        document.body.appendChild(script);
+    </script>
 </body>
 </html> 
