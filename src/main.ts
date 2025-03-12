@@ -39,8 +39,13 @@ class Game {
     private gameStarted: boolean = false;
     private gameMode: 'learning' | 'speed' | null = null;
     private startScreenContainer: HTMLDivElement | null = null;
+    private isMobile: boolean = false;
+    private touchControls: { [key: string]: boolean } = {};
 
     constructor() {
+        // Check if device is mobile
+        this.isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        
         // Scene setup
         this.scene = new THREE.Scene();
         this.scene.background = new THREE.Color(0x87ceeb); // Sky blue
@@ -142,7 +147,7 @@ class Game {
         // Speed Mode Button
         const speedButton = this.createModeButton(
             'Speed Mode',
-            'Test your drone pilting skills',
+            'Test your drone piloting skills',
             'speed'
         );
         buttonsContainer.appendChild(speedButton);
@@ -205,6 +210,9 @@ class Game {
         // Initialize game components
         this.setupLighting();
         this.setupControlsUI();
+        if (this.isMobile) {
+            this.setupMobileControls();
+        }
         this.loadDroneModel();
         this.addBuildings();
         this.addGround();
@@ -214,8 +222,10 @@ class Game {
 
         // Add event listeners
         window.addEventListener('resize', this.onWindowResize.bind(this));
-        document.addEventListener('keydown', this.onKeyDown.bind(this));
-        document.addEventListener('keyup', this.onKeyUp.bind(this));
+        if (!this.isMobile) {
+            document.addEventListener('keydown', this.onKeyDown.bind(this));
+            document.addEventListener('keyup', this.onKeyUp.bind(this));
+        }
 
         // Update UI based on game mode
         this.updateUIForGameMode();
@@ -294,19 +304,98 @@ class Game {
         infoElement.style.padding = '10px';
         infoElement.style.borderRadius = '8px';
         infoElement.style.fontFamily = 'Arial, sans-serif';
-        infoElement.innerHTML = `
-            <h3 style="margin:0; font-size:18px;">Game Controls</h3>
-            <ul style="list-style:none; padding:0; margin:5px 0;">
-                <li>Arrow Keys: Move Drone</li>
-                <li>A/D: Yaw Left/Right</li>
-                <li>W/S: Up/Down</li>
-                <li>Space: Toggle Sprayer</li>
-                <li>C: Clean (when sprayer is on)</li>
-                <li>V: Toggle Camera</li>
-                <li>Mouse: Orbit Camera (if enabled)</li>
-            </ul>
-            <p id="score-display" style="margin:0; font-weight:bold;">Score: 0/5 Logos Collected!</p>
-        `;
+
+        if (this.isMobile) {
+            infoElement.innerHTML = `
+                <h3 style="margin:0; font-size:18px;">Game Controls</h3>
+                <ul style="list-style:none; padding:0; margin:5px 0;">
+                    <li>Left Pad: Altitude & Rotation</li>
+                    <li>Right Pad: Movement</li>
+                    <li>Spray Button: Toggle Sprayer</li>
+                    <li>Camera Button: Switch View</li>
+                </ul>
+                <p id="score-display" style="margin:0; font-weight:bold;">Score: 0/5 Logos Collected!</p>
+            `;
+        } else {
+            infoElement.innerHTML = `
+                <h3 style="margin:0; font-size:18px;">Game Controls</h3>
+                <ul style="list-style:none; padding:0; margin:5px 0;">
+                    <li>Arrow Keys: Move Drone</li>
+                    <li>A/D: Yaw Left/Right</li>
+                    <li>W/S: Up/Down</li>
+                    <li>Space: Toggle Sprayer</li>
+                    <li>C: Clean (when sprayer is on)</li>
+                    <li>V: Toggle Camera</li>
+                    <li>Mouse: Orbit Camera (if enabled)</li>
+                </ul>
+                <p id="score-display" style="margin:0; font-weight:bold;">Score: 0/5 Logos Collected!</p>
+            `;
+        }
+    }
+
+    private setupMobileControls(): void {
+        const mobileControls = document.getElementById('mobileControls');
+        if (mobileControls) {
+            mobileControls.style.display = 'block';
+        }
+
+        // Setup touch event handlers for all control buttons
+        const buttons = {
+            'upLeft': 'w',
+            'downLeft': 's',
+            'leftLeft': 'a',
+            'rightLeft': 'd',
+            'upRight': 'arrowup',
+            'downRight': 'arrowdown',
+            'leftRight': 'arrowleft',
+            'rightRight': 'arrowright'
+        };
+
+        // Add touch handlers for movement buttons
+        Object.entries(buttons).forEach(([buttonId, key]) => {
+            const button = document.getElementById(buttonId);
+            if (button) {
+                button.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    this.touchControls[key] = true;
+                    this.keysPressed[key] = true;
+                });
+                button.addEventListener('touchend', (e) => {
+                    e.preventDefault();
+                    this.touchControls[key] = false;
+                    this.keysPressed[key] = false;
+                });
+            }
+        });
+
+        // Add spray button handler
+        const sprayButton = document.getElementById('sprayButton');
+        if (sprayButton) {
+            sprayButton.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                this.isSprayOn = !this.isSprayOn;
+                if (this.isSprayOn && !this.spraySystem) {
+                    this.createSpraySystem();
+                }
+                sprayButton.style.backgroundColor = this.isSprayOn ? 'rgba(0, 255, 255, 0.4)' : 'rgba(255, 255, 255, 0.25)';
+            });
+        }
+
+        // Add camera toggle button handler
+        const cameraButton = document.getElementById('cameraButton');
+        if (cameraButton) {
+            cameraButton.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                this.toggleCamera();
+            });
+        }
+
+        // Prevent default touch behavior to avoid scrolling
+        document.addEventListener('touchmove', (e) => {
+            if (this.gameStarted) {
+                e.preventDefault();
+            }
+        }, { passive: false });
     }
 
     private loadDroneModel(): void {
@@ -475,7 +564,7 @@ class Game {
         const rotationSpeed = 1.5;
         const droneRadius = 0.8;
 
-        // Yaw rotation (A/D)
+        // Yaw rotation (A/D or touch controls)
         if (this.keysPressed['a']) {
             this.drone.rotation.y += rotationSpeed * delta;
         }
@@ -483,16 +572,14 @@ class Game {
             this.drone.rotation.y -= rotationSpeed * delta;
         }
 
-        // Horizontal movement (arrow keys and Q/E for strafing)
+        // Horizontal movement (arrow keys/touch controls)
         let moveX = 0, moveZ = 0;
         if (this.keysPressed['arrowdown']) moveZ -= 1;
         if (this.keysPressed['arrowup']) moveZ += 1;
         if (this.keysPressed['arrowleft']) moveX += 1;
         if (this.keysPressed['arrowright']) moveX -= 1;
-        if (this.keysPressed['q']) moveX -= 1;
-        if (this.keysPressed['e']) moveX += 1;
 
-        // Vertical movement (W/S)
+        // Vertical movement (W/S or touch controls)
         let moveY = 0;
         if (this.keysPressed['w']) moveY += 1;
         if (this.keysPressed['s']) moveY -= 1;
