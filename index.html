@@ -1,19 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <script type="importmap">
-    {
-      "imports": {
-        "three": "https://unpkg.com/three@0.159.0/build/three.module.js",
-        "three/examples/jsm/loaders/GLTFLoader": "https://unpkg.com/three@0.159.0/examples/jsm/loaders/GLTFLoader.js",
-        "three/examples/jsm/loaders/DRACOLoader": "https://unpkg.com/three@0.159.0/examples/jsm/loaders/DRACOLoader.js",
-        "three/examples/jsm/controls/OrbitControls": "https://unpkg.com/three@0.159.0/examples/jsm/controls/OrbitControls.js"
-      }
-    }
-    </script>
-  <script type="module" crossorigin src="/drone-game/assets/polyfills-b7c9d249.js"></script>
-
     <meta charset="UTF-8">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="format-detection" content="telephone=no">
@@ -22,8 +11,12 @@
     <link rel="shortcut icon" type="image/png" href="/drone-game/logo.png">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Drone Game</title>
-    <!-- Add Three.js from CDN -->
-    <script async src="https://unpkg.com/es-module-shims@1.8.0/dist/es-module-shims.js"></script>
+    
+    <!-- Load Three.js and its components synchronously -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.149.0/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.149.0/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.149.0/examples/js/loaders/DRACOLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.149.0/examples/js/controls/OrbitControls.js"></script>
 
     <style>
         body {
@@ -187,17 +180,15 @@
             font-family: Arial, sans-serif;
         }
     </style>
-  <script type="module" crossorigin src="/drone-game/assets/index-e9d777ce.js"></script>
-  <script type="module">import.meta.url;import("_").catch(()=>1);async function* g(){};if(location.protocol!="file:"){window.__vite_is_modern_browser=true}</script>
-  <script type="module">!function(){if(window.__vite_is_modern_browser)return;console.warn("vite: loading legacy chunks, syntax error above and the same error below should be ignored");var e=document.getElementById("vite-legacy-polyfill"),n=document.createElement("script");n.src=e.src,n.onload=function(){System.import(document.getElementById('vite-legacy-entry').getAttribute('data-src'))},document.body.appendChild(n)}();</script>
+  <script async type="module" crossorigin src="/drone-game/assets/index-daf95610.js"></script>
 </head>
 <body>
     <div id="loadingProgress">Loading game resources... <span id="loadingStatus">0%</span></div>
     <div id="errorContainer">
         <h3 id="errorTitle">Error Loading Game</h3>
         <div id="errorDetails"></div>
-        <button class="error-button" onclick="window.location.reload()">Retry</button>
-        <button class="error-button" onclick="localStorage.clear(); window.location.reload()">Clear Cache & Retry</button>
+        <button class="error-button" onclick="retryLoading()">Retry</button>
+        <button class="error-button" onclick="clearAndRetry()">Clear Cache & Retry</button>
         <button class="error-button" onclick="document.getElementById('errorContainer').style.display='none'">Dismiss</button>
     </div>
     <div id="rotateMessage">
@@ -228,11 +219,11 @@
     </div>
     <div id="info">Loading drone model...</div>
     <script>
-        // Track loading states
+        let gameLoaded = false;
         let loadingErrors = [];
         let resourcesLoaded = 0;
-        let totalResources = 4; // Update this based on your total resources (models, textures, etc.)
-        
+        let totalResources = 4;
+
         function updateLoadingProgress(progress) {
             const loadingStatus = document.getElementById('loadingStatus');
             if (loadingStatus) {
@@ -245,78 +236,101 @@
             const errorTitle = document.getElementById('errorTitle');
             const errorDetails = document.getElementById('errorDetails');
             
-            // Store error
             loadingErrors.push({ title, details, time: new Date().toISOString() });
-            
-            // Show error container
             errorContainer.style.display = 'block';
             errorTitle.textContent = title;
-            
-            // Show all accumulated errors
             errorDetails.textContent = loadingErrors
                 .map(err => `[${err.time}]\n${err.title}\n${err.details}\n`)
                 .join('\n---\n\n');
-            
-            // Hide loading progress
+
             const loadingProgress = document.getElementById('loadingProgress');
             if (loadingProgress) {
                 loadingProgress.style.display = 'none';
             }
         }
 
-        // Global error handler
-        window.onerror = function(msg, url, line, col, error) {
-            showError('JavaScript Error', `Error: ${msg}\nFile: ${url}\nLine: ${line}\nColumn: ${col}\nStack: ${error?.stack || 'No stack trace'}`);
-            return false;
-        };
-
-        // Promise rejection handler
-        window.addEventListener('unhandledrejection', function(event) {
-            showError('Resource Loading Error', `Failed to load resource:\n${event.reason}\nStack: ${event.reason?.stack || 'No stack trace'}`);
-        });
-
-        // Monitor resource loading
-        window.addEventListener('load', function() {
-            updateLoadingProgress(1);
-            document.getElementById('loadingProgress').style.display = 'none';
-        });
-
-        // Safari-specific checks
-        if (navigator.userAgent.includes('Safari') && !navigator.userAgent.includes('Chrome')) {
-            // Check WebGL support
-            try {
-                const canvas = document.createElement('canvas');
-                const gl = canvas.getContext('webgl2') || canvas.getContext('webgl');
-                if (!gl) {
-                    showError('WebGL Not Available', 'Your browser does not support WebGL, which is required to run this game.');
-                }
-            } catch (e) {
-                showError('WebGL Error', `Failed to initialize WebGL: ${e.message}`);
+        function retryLoading() {
+            if (!gameLoaded) {
+                loadingErrors = [];
+                document.getElementById('errorContainer').style.display = 'none';
+                document.getElementById('loadingProgress').style.display = 'block';
+                checkAndLoadGame();
             }
         }
 
-        // Add progressive loading check
-        window.addEventListener('load', function() {
-            // Check if WebGL is available
+        function clearAndRetry() {
+            localStorage.clear();
+            sessionStorage.clear();
+            const cookies = document.cookie.split(";");
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i];
+                const eqPos = cookie.indexOf("=");
+                const name = eqPos > -1 ? cookie.substr(0, eqPos) : cookie;
+                document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT";
+            }
+            window.location.reload();
+        }
+
+        function checkWebGL() {
+            const canvas = document.createElement('canvas');
             try {
-                const canvas = document.createElement('canvas');
-                const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
-                if (!gl) {
-                    throw new Error('WebGL not supported');
-                }
-   /drone-game/assets/main-db951178.ts // If WebGL is available, load the game
-                import('/src/main.ts')
-                    .catch(error => {
-                        showError('Game Loading Error', error.message);
-                    });
+                const gl = canvas.getContext('webgl', { 
+                    powerPreference: "default",
+                    failIfMajorPerformanceCaveat: false,
+                    antialias: false
+                });
+                if (!gl) return false;
+                return true;
             } catch (e) {
-                showError('WebGL Error', 'Your browser does not support WebGL, which is required to run this game.');
+                return false;
+            }
+        }
+
+        function checkAndLoadGame() {
+            if (!window.THREE) {
+                showError('Three.js Error', 'Failed to load Three.js library');
+                return;
+            }
+
+            if (!checkWebGL()) {
+                showError('WebGL Error', 'WebGL is not supported or disabled in your browser');
+                return;
+            }
+
+            // Load game with a slight delay to ensure everything is ready
+            setTimeout(() => {
+                const script = document.createElement('script');
+                script.type = 'module';
+                script.src = '/drone-game/src/main.ts';
+                script.onerror = (error) => {
+                    showError('Game Loading Error', 'Failed to load game script: ' + error.message);
+                };
+                script.onload = () => {
+                    gameLoaded = true;
+                    document.getElementById('loadingProgress').style.display = 'none';
+                };
+                document.body.appendChild(script);
+            }, 500);
+        }
+
+        // Start loading sequence when everything is ready
+        window.addEventListener('load', checkAndLoadGame);
+
+        // Global error handlers
+        window.onerror = function(msg, url, line, col, error) {
+            if (!gameLoaded) {
+                showError('JavaScript Error', `Error: ${msg}\nFile: ${url}\nLine: ${line}\nColumn: ${col}`);
+            }
+            return false;
+        };
+
+        window.addEventListener('unhandledrejection', function(event) {
+            if (!gameLoaded) {
+                showError('Loading Error', event.reason?.message || 'Unknown error occurred');
             }
         });
     </script>
-    
   <script nomodule>!function(){var e=document,t=e.createElement("script");if(!("noModule"in t)&&"onbeforeload"in t){var n=!1;e.addEventListener("beforeload",(function(e){if(e.target===t)n=!0;else if(!e.target.hasAttribute("nomodule")||!n)return;e.preventDefault()}),!0),t.type="module",t.src=".",e.head.appendChild(t),t.remove()}}();</script>
-  <script nomodule crossorigin id="vite-legacy-polyfill" src="/drone-game/assets/polyfills-legacy-70fcf1a7.js"></script>
-  <script nomodule crossorigin id="vite-legacy-entry" data-src="/drone-game/assets/index-legacy-bafc9a50.js">System.import(document.getElementById('vite-legacy-entry').getAttribute('data-src'))</script>
+  <script nomodule crossorigin id="vite-legacy-entry" data-src="/drone-game/assets/index-legacy-518b8698.js">System.import(document.getElementById('vite-legacy-entry').getAttribute('data-src'))</script>
 </body>
 </html> 
