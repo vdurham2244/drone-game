@@ -12,7 +12,7 @@ export default defineConfig({
   server: {
     open: true
   },
-  base: process.env.GITHUB_ACTIONS ? '/drone-game/' : '/',
+  base: './',
   build: {
     target: 'es2015',
     minify: 'terser',
@@ -23,7 +23,17 @@ export default defineConfig({
       output: {
         manualChunks: {
           three: ['three']
-        }
+        },
+        assetFileNames: (assetInfo) => {
+          const info = assetInfo.name.split('.');
+          const ext = info[info.length - 1];
+          if (/png|jpe?g|svg|gif|tiff|bmp|ico|glb|gltf/i.test(ext)) {
+            return `assets/models/[name][extname]`;
+          }
+          return `assets/[name]-[hash][extname]`;
+        },
+        chunkFileNames: 'assets/[name]-[hash].js',
+        entryFileNames: 'assets/[name]-[hash].js'
       }
     }
   }
