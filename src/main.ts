@@ -142,7 +142,7 @@ class Game {
         // Speed Mode Button
         const speedButton = this.createModeButton(
             'Speed Mode',
-            'Test your drone piloting skills',
+            'Test your drone pilting skills',
             'speed'
         );
         buttonsContainer.appendChild(speedButton);
