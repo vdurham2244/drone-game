@@ -125,7 +125,7 @@ class Game {
 
         // Add logo
         const logo = document.createElement('img');
-        logo.src = import.meta.env.BASE_URL + 'start.png';
+        logo.src = new URL('start.png', import.meta.url).href;
         logo.style.width = '400px';
         logo.style.marginBottom = '40px';
         this.startScreenContainer.appendChild(logo);
@@ -406,7 +406,7 @@ class Game {
 
         console.log('Attempting to load drone model...');
         loader.load(
-            import.meta.env.BASE_URL + 'sherpaModel.glb',
+            new URL('sherpaModel.glb', import.meta.url).href,
             (gltf: GLTF) => {
                 console.log('Drone model loaded successfully:', gltf);
                 if (gltf.scene) {
@@ -959,7 +959,7 @@ class Game {
 
         // Add logo image at the top
         const logoImg = document.createElement('img');
-        logoImg.src = import.meta.env.BASE_URL + 'logo.png';
+        logoImg.src = new URL('logo.png', import.meta.url).href;
         logoImg.style.width = '120px';
         logoImg.style.marginBottom = '20px';
         winElement.appendChild(logoImg);
@@ -1027,7 +1027,7 @@ class Game {
     private createLogo(): THREE.Mesh {
         const logoGeometry = new THREE.CircleGeometry(1.5, 32);
         const textureLoader = new THREE.TextureLoader();
-        const logoTexture = textureLoader.load(import.meta.env.BASE_URL + 'logo.png');
+        const logoTexture = textureLoader.load(new URL('logo.png', import.meta.url).href);
         logoTexture.minFilter = THREE.LinearFilter;
         logoTexture.magFilter = THREE.LinearFilter;
         
@@ -1122,7 +1122,7 @@ class Game {
 
         // Add logo image
         const logoImg = document.createElement('img');
-        logoImg.src = import.meta.env.BASE_URL + 'logo.png';
+        logoImg.src = new URL('logo.png', import.meta.url).href;
         logoImg.style.width = '100px';
         logoImg.style.marginBottom = '15px';
         popupElement.appendChild(logoImg);
