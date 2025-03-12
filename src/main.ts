@@ -35,6 +35,19 @@ class Game {
     private gameStarted: boolean = false;
     private gameMode: 'learning' | 'speed' | null = null;
     private startScreenContainer: HTMLDivElement | null = null;
+    private isMobile: boolean = false;
+    private mobileControls: {
+        [key: string]: boolean;
+    } = {
+        leftUp: false,
+        leftDown: false,
+        leftLeft: false,
+        leftRight: false,
+        rightUp: false,
+        rightDown: false,
+        rightLeft: false,
+        rightRight: false
+    };
 
     constructor() {
         // Scene setup
@@ -93,6 +106,13 @@ class Game {
         this.controls.minDistance = 5;
         this.controls.maxDistance = 100;
         this.controls.enabled = false;
+
+        // Check if device is mobile
+        this.isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        
+        if (this.isMobile) {
+            this.setupMobileControls();
+        }
 
         // Start animation loop
         this.animate();
@@ -467,41 +487,50 @@ class Game {
         const rotationSpeed = 1.5;
         const droneRadius = 0.8;
 
-        // Yaw rotation (A/D)
-        if (this.keysPressed['a']) {
-            this.drone.rotation.y += rotationSpeed * delta;
+        let moveX = 0, moveY = 0, moveZ = 0;
+        let yawRotation = 0;
+
+        if (this.isMobile) {
+            // Left pad controls vertical movement and rotation
+            if (this.mobileControls.leftUp) moveY += 1;
+            if (this.mobileControls.leftDown) moveY -= 1;
+            if (this.mobileControls.leftLeft) yawRotation = rotationSpeed;
+            if (this.mobileControls.leftRight) yawRotation = -rotationSpeed;
+
+            // Right pad controls horizontal movement
+            if (this.mobileControls.rightUp) moveZ += 1;
+            if (this.mobileControls.rightDown) moveZ -= 1;
+            if (this.mobileControls.rightLeft) moveX += 1;
+            if (this.mobileControls.rightRight) moveX -= 1;
+        } else {
+            // Keyboard controls (existing code)
+            if (this.keysPressed['a']) yawRotation = rotationSpeed;
+            if (this.keysPressed['d']) yawRotation = -rotationSpeed;
+            if (this.keysPressed['arrowdown']) moveZ -= 1;
+            if (this.keysPressed['arrowup']) moveZ += 1;
+            if (this.keysPressed['arrowleft']) moveX += 1;
+            if (this.keysPressed['arrowright']) moveX -= 1;
+            if (this.keysPressed['w']) moveY += 1;
+            if (this.keysPressed['s']) moveY -= 1;
         }
-        if (this.keysPressed['d']) {
-            this.drone.rotation.y -= rotationSpeed * delta;
-        }
 
-        // Horizontal movement (arrow keys and Q/E for strafing)
-        let moveX = 0, moveZ = 0;
-        if (this.keysPressed['arrowdown']) moveZ -= 1;
-        if (this.keysPressed['arrowup']) moveZ += 1;
-        if (this.keysPressed['arrowleft']) moveX += 1;
-        if (this.keysPressed['arrowright']) moveX -= 1;
-        if (this.keysPressed['q']) moveX -= 1;
-        if (this.keysPressed['e']) moveX += 1;
+        // Apply yaw rotation
+        this.drone.rotation.y += yawRotation * delta;
 
-        // Vertical movement (W/S)
-        let moveY = 0;
-        if (this.keysPressed['w']) moveY += 1;
-        if (this.keysPressed['s']) moveY -= 1;
-
+        // Apply movement
         const horizontalMovement = new THREE.Vector3(moveX, 0, moveZ);
         if (horizontalMovement.length() > 0) {
             horizontalMovement.normalize();
             horizontalMovement.multiplyScalar(translationSpeed * delta);
             horizontalMovement.applyEuler(new THREE.Euler(0, this.drone.rotation.y, 0));
         }
-        const verticalMovement = moveY * translationSpeed * delta;
 
+        const verticalMovement = moveY * translationSpeed * delta;
         const newPosition = this.drone.position.clone();
         newPosition.add(horizontalMovement);
         newPosition.y = Math.max(2, newPosition.y + verticalMovement);
 
-        // Collision detection with buildings.
+        // Collision detection
         const droneSphere = new THREE.Sphere(newPosition, droneRadius);
         let willCollide = false;
         for (const building of this.buildings) {
@@ -1057,6 +1086,61 @@ class Game {
         popupElement.appendChild(button);
 
         document.body.appendChild(popupElement);
+    }
+
+    private setupMobileControls(): void {
+        const padButtons = [
+            'leftUp', 'leftDown', 'leftLeft', 'leftRight',
+            'rightUp', 'rightDown', 'rightLeft', 'rightRight'
+        ];
+
+        padButtons.forEach(buttonId => {
+            const button = document.getElementById(buttonId);
+            if (button) {
+                // Handle touch start
+                button.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    this.mobileControls[buttonId] = true;
+                    button.classList.add('active');
+                });
+
+                // Handle touch end
+                button.addEventListener('touchend', (e) => {
+                    e.preventDefault();
+                    this.mobileControls[buttonId] = false;
+                    button.classList.remove('active');
+                });
+
+                // Handle touch cancel
+                button.addEventListener('touchcancel', (e) => {
+                    e.preventDefault();
+                    this.mobileControls[buttonId] = false;
+                    button.classList.remove('active');
+                });
+            }
+        });
+
+        // Setup action buttons
+        const sprayButton = document.getElementById('sprayButton');
+        const cameraButton = document.getElementById('cameraButton');
+
+        if (sprayButton) {
+            sprayButton.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                this.isSprayOn = !this.isSprayOn;
+                sprayButton.classList.toggle('active');
+                if (this.isSprayOn && !this.spraySystem) {
+                    this.createSpraySystem();
+                }
+            });
+        }
+
+        if (cameraButton) {
+            cameraButton.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                this.toggleCamera();
+            });
+        }
     }
 }
 
