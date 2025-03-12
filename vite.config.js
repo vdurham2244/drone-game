@@ -1,7 +1,7 @@
 import legacy from '@vitejs/plugin-legacy';
 import { defineConfig } from 'vite';
 
-export default defineConfig({
+export default defineConfig(({ command }) => ({
   plugins: [
     legacy({
       targets: ['defaults', 'not IE 11'],
@@ -12,13 +12,13 @@ export default defineConfig({
   server: {
     open: true
   },
-  base: './',
+  base: command === 'serve' ? '/' : '/drone-game/',
   build: {
     target: 'es2015',
     minify: 'terser',
     sourcemap: true,
     outDir: 'dist',
-    assetsDir: 'assets',
+    assetsDir: '',
     rollupOptions: {
       output: {
         manualChunks: {
@@ -28,13 +28,13 @@ export default defineConfig({
           const info = assetInfo.name.split('.');
           const ext = info[info.length - 1];
           if (/png|jpe?g|svg|gif|tiff|bmp|ico|glb|gltf/i.test(ext)) {
-            return `assets/models/[name][extname]`;
+            return `[name][extname]`;
           }
-          return `assets/[name]-[hash][extname]`;
+          return `[name]-[hash][extname]`;
         },
-        chunkFileNames: 'assets/[name]-[hash].js',
-        entryFileNames: 'assets/[name]-[hash].js'
+        chunkFileNames: '[name]-[hash].js',
+        entryFileNames: '[name]-[hash].js'
       }
     }
   }
-});
+}));
