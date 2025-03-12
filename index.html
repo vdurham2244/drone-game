@@ -168,15 +168,6 @@
         </div>
     </div>
     <div id="info">Loading drone model...</div>
-    <script type="module">
-        // Dynamically import the main script based on environment
-        const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-        const scriptPath = isDev ? '/src/main.ts' : './index.js';
-        
-        import(scriptPath).catch(error => {
-            console.error('Failed to load game script:', error);
-            document.getElementById('info').innerHTML = 'Error loading game. Please try refreshing the page.';
-        });
-    </script>
+    <script type="module" src="/src/main.ts"></script>
 </body>
 </html> 
