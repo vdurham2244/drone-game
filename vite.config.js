@@ -4,12 +4,12 @@ export default defineConfig({
     base: '/drone-game/',
     build: {
         outDir: 'dist',
-        assetsDir: 'assets',
+        assetsDir: '',
         rollupOptions: {
             output: {
-                entryFileNames: 'assets/[name].js',
-                chunkFileNames: 'assets/[name].js',
-                assetFileNames: 'assets/[name].[ext]'
+                entryFileNames: 'index.js',
+                chunkFileNames: '[name]-[hash].js',
+                assetFileNames: '[name].[ext]'
             }
         }
     },

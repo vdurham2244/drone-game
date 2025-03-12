@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="format-detection" content="telephone=no">
+    <link rel="icon" type="image/png" href="./logo.png">
+    <link rel="apple-touch-icon" href="./logo.png">
+    <link rel="shortcut icon" type="image/png" href="./logo.png">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Drone Game</title>
+
+    <!-- Load Three.js and dependencies -->
+    <script async src="https://unpkg.com/es-module-shims@1.8.0/dist/es-module-shims.js"></script>
+
+
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            touch-action: none;
+            position: fixed;
+            width: 100%;
+            height: 100%;
+        }
+        canvas {
+            display: block;
+        }
+        #mobileControls {
+            display: none;
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            z-index: 1000;
+            pointer-events: none;
+        }
+        .control-set {
+            position: absolute;
+            bottom: min(80px, 10vh);
+            display: grid;
+            grid-template-columns: repeat(3, min(70px, 15vw));
+            grid-template-rows: repeat(3, min(70px, 15vw));
+            gap: min(10px, 2vw);
+            pointer-events: auto;
+        }
+        .left-controls {
+            left: min(20px, 5vw);
+        }
+        .right-controls {
+            right: min(20px, 5vw);
+        }
+        .control-button {
+            width: min(70px, 15vw);
+            height: min(70px, 15vw);
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, 0.8);
+            background-color: rgba(255, 255, 255, 0.25);
+            color: white;
+            font-size: min(14px, 3vw);
+            touch-action: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 5px;
+            font-family: Arial, sans-serif;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+            user-select: none;
+            -webkit-user-select: none;
+            transition: transform 0.1s ease-out, background-color 0.2s ease-out;
+        }
+        .control-button:active {
+            background-color: rgba(255, 255, 255, 0.4);
+            transform: scale(0.95);
+        }
+        .action-buttons {
+            position: absolute;
+            top: min(20px, 5vh);
+            right: min(20px, 5vw);
+            display: flex;
+            gap: min(10px, 2vw);
+            pointer-events: auto;
+        }
+        #rotateMessage {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.9);
+            color: white;
+            font-size: 24px;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            z-index: 2000;
+            flex-direction: column;
+        }
+        @media (orientation: portrait) {
+            #rotateMessage {
+                display: flex !important;
+            }
+            #mobileControls {
+                display: none !important;
+            }
+        }
+        @media (max-width: 900px) {
+            #mobileControls {
+                display: block;
+            }
+            #info {
+                display: none;
+            }
+        }
+        #info {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: white;
+            font-family: Arial, sans-serif;
+            background: rgba(0,0,0,0.8);
+            padding: 15px;
+            border-radius: 8px;
+            line-height: 1.5;
+            font-size: 16px;
+            max-width: 300px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+        }
+    </style>
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.149.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.149.0/examples/jsm/"
+        }
+    }
+    </script>
+  <script type="module" crossorigin src="/drone-game/index.js"></script>
+</head>
+<body>
+    <div id="rotateMessage">
+        Please rotate your device to landscape mode<br>
+        <span style="font-size: 40px;">📱↻</span>
+    </div>
+    <div id="mobileControls">
+        <div class="control-set left-controls">
+            <div></div>
+            <button class="control-button" id="upLeft">Altitude Up</button>
+            <div></div>
+            <button class="control-button" id="leftLeft">Turn Left</button>
+            <button class="control-button" id="downLeft">Altitude Down</button>
+            <button class="control-button" id="rightLeft">Turn Right</button>
+        </div>
+        <div class="control-set right-controls">
+            <div></div>
+            <button class="control-button" id="upRight">Forward</button>
+            <div></div>
+            <button class="control-button" id="leftRight">Left</button>
+            <button class="control-button" id="downRight">Back</button>
+            <button class="control-button" id="rightRight">Right</button>
+        </div>
+        <div class="action-buttons">
+            <button class="control-button" id="sprayButton">Spray</button>
+            <button class="control-button" id="cameraButton">Camera</button>
+        </div>
+    </div>
+    <div id="info">Loading drone model...</div>
+</body>
+</html> 

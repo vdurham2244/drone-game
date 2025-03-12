@@ -734,12 +734,7 @@ class Game {
         const sprayContainer = this.spraySystem.parent;
         if (!sprayContainer) return;
 
-        const matrixWorld = sprayContainer.matrixWorld;
-        const positionAttribute = this.spraySystem.geometry.getAttribute('position') as THREE.Float32BufferAttribute;
-        const positions = new Float32Array(positionAttribute.array);
-        const particleCount = positions.length / 3;
-        const collisionThreshold = 0.5;
-
+        // Get drone and building positions for cleaning check
         this.buildings.forEach(building => {
             const buildingPos = building.getMesh().position;
             const dronePos = this.drone!.position;
