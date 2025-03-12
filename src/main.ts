@@ -35,21 +35,6 @@ class Game {
     private gameStarted: boolean = false;
     private gameMode: 'learning' | 'speed' | null = null;
     private startScreenContainer: HTMLDivElement | null = null;
-    private isMobile: boolean = false;
-    private touchControls: {
-        [key: string]: { pressed: boolean, element: HTMLButtonElement | null }
-    } = {
-        upLeft: { pressed: false, element: null },
-        downLeft: { pressed: false, element: null },
-        leftLeft: { pressed: false, element: null },
-        rightLeft: { pressed: false, element: null },
-        upRight: { pressed: false, element: null },
-        downRight: { pressed: false, element: null },
-        leftRight: { pressed: false, element: null },
-        rightRight: { pressed: false, element: null },
-        spray: { pressed: false, element: null },
-        camera: { pressed: false, element: null }
-    };
 
     constructor() {
         // Scene setup
@@ -92,7 +77,7 @@ class Game {
         this.renderer.setPixelRatio(window.devicePixelRatio);
         this.renderer.shadowMap.enabled = true;
         this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-        (this.renderer as any).outputColorSpace = (THREE as any).SRGBColorSpace;
+        this.renderer.outputColorSpace = THREE.SRGBColorSpace;
         this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
         this.renderer.toneMappingExposure = 1.0;
         document.body.appendChild(this.renderer.domElement);
@@ -206,9 +191,6 @@ class Game {
         this.gameMode = mode;
         this.gameStarted = true;
         
-        // Check if device is mobile
-        this.isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-        
         // Remove start screen
         if (this.startScreenContainer) {
             document.body.removeChild(this.startScreenContainer);
@@ -218,9 +200,6 @@ class Game {
         // Initialize game components
         this.setupLighting();
         this.setupControlsUI();
-        if (this.isMobile) {
-            this.setupMobileControls();
-        }
         this.loadDroneModel();
         this.addBuildings();
         this.addGround();
@@ -230,10 +209,8 @@ class Game {
 
         // Add event listeners
         window.addEventListener('resize', this.onWindowResize.bind(this));
-        if (!this.isMobile) {
-            document.addEventListener('keydown', this.onKeyDown.bind(this));
-            document.addEventListener('keyup', this.onKeyUp.bind(this));
-        }
+        document.addEventListener('keydown', this.onKeyDown.bind(this));
+        document.addEventListener('keyup', this.onKeyUp.bind(this));
 
         // Update UI based on game mode
         this.updateUIForGameMode();
@@ -325,39 +302,6 @@ class Game {
             </ul>
             <p id="score-display" style="margin:0; font-weight:bold;">Score: 0/5 Logos Collected!</p>
         `;
-    }
-
-    private setupMobileControls(): void {
-        // Initialize touch controls
-        Object.keys(this.touchControls).forEach(key => {
-            const element = document.getElementById(key) as HTMLButtonElement;
-            if (element) {
-                this.touchControls[key].element = element;
-                
-                // Touch start event
-                element.addEventListener('touchstart', (e) => {
-                    e.preventDefault();
-                    this.touchControls[key].pressed = true;
-                    if (key === 'spray') {
-                        this.isSprayOn = !this.isSprayOn;
-                        if (this.isSprayOn && !this.spraySystem) {
-                            this.createSpraySystem();
-                        }
-                    } else if (key === 'camera') {
-                        this.toggleCamera();
-                    }
-                });
-
-                // Touch end event
-                element.addEventListener('touchend', (e) => {
-                    e.preventDefault();
-                    this.touchControls[key].pressed = false;
-                });
-
-                // Prevent default touch behaviors
-                element.addEventListener('touchmove', (e) => e.preventDefault());
-            }
-        });
     }
 
     private loadDroneModel(): void {
@@ -523,32 +467,27 @@ class Game {
         const rotationSpeed = 1.5;
         const droneRadius = 0.8;
 
-        // Handle rotation (A/D or left/right touch controls)
-        if (this.keysPressed['a'] || this.touchControls.leftLeft.pressed) {
+        // Yaw rotation (A/D)
+        if (this.keysPressed['a']) {
             this.drone.rotation.y += rotationSpeed * delta;
         }
-        if (this.keysPressed['d'] || this.touchControls.rightLeft.pressed) {
+        if (this.keysPressed['d']) {
             this.drone.rotation.y -= rotationSpeed * delta;
         }
 
-        // Handle movement
-        let moveX = 0, moveY = 0, moveZ = 0;
-
-        // Keyboard controls
+        // Horizontal movement (arrow keys and Q/E for strafing)
+        let moveX = 0, moveZ = 0;
         if (this.keysPressed['arrowdown']) moveZ -= 1;
         if (this.keysPressed['arrowup']) moveZ += 1;
         if (this.keysPressed['arrowleft']) moveX += 1;
         if (this.keysPressed['arrowright']) moveX -= 1;
+        if (this.keysPressed['q']) moveX -= 1;
+        if (this.keysPressed['e']) moveX += 1;
+
+        // Vertical movement (W/S)
+        let moveY = 0;
         if (this.keysPressed['w']) moveY += 1;
         if (this.keysPressed['s']) moveY -= 1;
-
-        // Touch controls
-        if (this.touchControls.upRight.pressed) moveZ += 1;
-        if (this.touchControls.downRight.pressed) moveZ -= 1;
-        if (this.touchControls.leftRight.pressed) moveX += 1;
-        if (this.touchControls.rightRight.pressed) moveX -= 1;
-        if (this.touchControls.upLeft.pressed) moveY += 1;
-        if (this.touchControls.downLeft.pressed) moveY -= 1;
 
         const horizontalMovement = new THREE.Vector3(moveX, 0, moveZ);
         if (horizontalMovement.length() > 0) {
@@ -562,7 +501,7 @@ class Game {
         newPosition.add(horizontalMovement);
         newPosition.y = Math.max(2, newPosition.y + verticalMovement);
 
-        // Collision detection with buildings
+        // Collision detection with buildings.
         const droneSphere = new THREE.Sphere(newPosition, droneRadius);
         let willCollide = false;
         for (const building of this.buildings) {
@@ -624,8 +563,7 @@ class Game {
             return;
         }
 
-        const positionAttribute = this.spraySystem.geometry.getAttribute('position') as THREE.Float32BufferAttribute;
-        const positions = new Float32Array(positionAttribute.array);
+        const positions = this.spraySystem.geometry.attributes.position.array as Float32Array;
         const particleCount = positions.length / 3;
         
         for (let i = 0; i < particleCount; i++) {
@@ -639,9 +577,7 @@ class Game {
             positions[i3] *= 0.99;
             positions[i3 + 1] *= 0.99;
         }
-        
-        positionAttribute.set(positions);
-        positionAttribute.needsUpdate = true;
+        this.spraySystem.geometry.attributes.position.needsUpdate = true;
     }
 
     private updateCameras(): void {
@@ -729,12 +665,7 @@ class Game {
     }
 
     private clean(): void {
-        if (!this.spraySystem || !this.drone) return;
-
-        const sprayContainer = this.spraySystem.parent;
-        if (!sprayContainer) return;
-
-        // Get drone and building positions for cleaning check
+        if (!this.drone || !this.isSprayOn) return;
         this.buildings.forEach(building => {
             const buildingPos = building.getMesh().position;
             const dronePos = this.drone!.position;
@@ -815,7 +746,7 @@ class Game {
         sprayContainer.updateMatrixWorld();
         const matrixWorld = sprayContainer.matrixWorld;
 
-        const positions = (this.spraySystem.geometry.getAttribute('position') as THREE.Float32BufferAttribute).array;
+        const positions = this.spraySystem.geometry.attributes.position.array as Float32Array;
         const particleCount = positions.length / 3;
         const collisionThreshold = 0.5;
 
