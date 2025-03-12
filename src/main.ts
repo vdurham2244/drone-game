@@ -1089,6 +1089,11 @@ class Game {
     }
 
     private setupMobileControls(): void {
+        // Prevent default touch behaviors
+        document.addEventListener('touchstart', (e) => e.preventDefault(), { passive: false });
+        document.addEventListener('touchmove', (e) => e.preventDefault(), { passive: false });
+        document.addEventListener('touchend', (e) => e.preventDefault(), { passive: false });
+
         const padButtons = [
             'leftUp', 'leftDown', 'leftLeft', 'leftRight',
             'rightUp', 'rightDown', 'rightLeft', 'rightRight'
@@ -1100,23 +1105,38 @@ class Game {
                 // Handle touch start
                 button.addEventListener('touchstart', (e) => {
                     e.preventDefault();
+                    e.stopPropagation();
                     this.mobileControls[buttonId] = true;
                     button.classList.add('active');
-                });
+                }, { passive: false });
 
                 // Handle touch end
                 button.addEventListener('touchend', (e) => {
                     e.preventDefault();
+                    e.stopPropagation();
                     this.mobileControls[buttonId] = false;
                     button.classList.remove('active');
-                });
+                }, { passive: false });
 
                 // Handle touch cancel
                 button.addEventListener('touchcancel', (e) => {
                     e.preventDefault();
+                    e.stopPropagation();
                     this.mobileControls[buttonId] = false;
                     button.classList.remove('active');
-                });
+                }, { passive: false });
+
+                // Handle touch move out of button
+                button.addEventListener('touchmove', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const touch = e.touches[0];
+                    const rect = button.getBoundingClientRect();
+                    if (!this.isPointInRect(touch.clientX, touch.clientY, rect)) {
+                        this.mobileControls[buttonId] = false;
+                        button.classList.remove('active');
+                    }
+                }, { passive: false });
             }
         });
 
@@ -1127,20 +1147,26 @@ class Game {
         if (sprayButton) {
             sprayButton.addEventListener('touchstart', (e) => {
                 e.preventDefault();
+                e.stopPropagation();
                 this.isSprayOn = !this.isSprayOn;
                 sprayButton.classList.toggle('active');
                 if (this.isSprayOn && !this.spraySystem) {
                     this.createSpraySystem();
                 }
-            });
+            }, { passive: false });
         }
 
         if (cameraButton) {
             cameraButton.addEventListener('touchstart', (e) => {
                 e.preventDefault();
+                e.stopPropagation();
                 this.toggleCamera();
-            });
+            }, { passive: false });
         }
+    }
+
+    private isPointInRect(x: number, y: number, rect: DOMRect): boolean {
+        return x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
     }
 }
 
