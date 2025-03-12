@@ -12,7 +12,7 @@ export default defineConfig({
   server: {
     open: true
   },
-  base: './',
+  base: process.env.GITHUB_ACTIONS ? '/drone-game/' : '/',
   build: {
     target: 'es2015',
     minify: 'terser',
