@@ -168,19 +168,6 @@
         </div>
     </div>
     <div id="info">Loading drone model...</div>
-    <script type="module">
-        // Dynamically load the main script
-        const script = document.createElement('script');
-        script.type = 'module';
-        
-        // Check if we're in development or production
-        if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
-            script.src = '/src/main.ts';
-        } else {
-            script.src = '/src/main.ts';
-        }
-        
-        document.body.appendChild(script);
-    </script>
+    <script type="module" src="/src/main.ts"></script>
 </body>
 </html> 
