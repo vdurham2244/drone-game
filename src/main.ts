@@ -1,11 +1,7 @@
-// Import Three.js and its types
 import * as THREE from 'three';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
-import { GLTFLoader, GLTF } from 'three/examples/jsm/loaders/GLTFLoader';
-import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader';
-
-type OrbitControlsType = typeof OrbitControls;
-
+import { GLTF, GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { ResidentialBuilding } from './buildings/ResidentialBuilding';
 import { ChurchBuilding } from './buildings/ChurchBuilding';
 import { IndustrialTank } from './buildings/IndustrialTank';
@@ -22,7 +18,7 @@ class Game {
     private renderer: THREE.WebGLRenderer;
     private drone: THREE.Object3D | null = null;
     private buildings: Building[] = [];
-    private controls: any;
+    private controls: OrbitControls;
     private cleaningRadius = 2;
     private cleaningPower = 1;
     private isSprayOn: boolean = false;
@@ -39,13 +35,8 @@ class Game {
     private gameStarted: boolean = false;
     private gameMode: 'learning' | 'speed' | null = null;
     private startScreenContainer: HTMLDivElement | null = null;
-    private isMobile: boolean = false;
-    private touchControls: { [key: string]: boolean } = {};
 
     constructor() {
-        // Check if device is mobile
-        this.isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-        
         // Scene setup
         this.scene = new THREE.Scene();
         this.scene.background = new THREE.Color(0x87ceeb); // Sky blue
@@ -80,13 +71,12 @@ class Game {
         this.renderer = new THREE.WebGLRenderer({ 
             antialias: true,
             alpha: true,
-            powerPreference: "default"
+            powerPreference: "high-performance"
         });
         this.renderer.setSize(window.innerWidth, window.innerHeight);
         this.renderer.setPixelRatio(window.devicePixelRatio);
         this.renderer.shadowMap.enabled = true;
         this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-        // @ts-ignore
         this.renderer.outputColorSpace = THREE.SRGBColorSpace;
         this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
         this.renderer.toneMappingExposure = 1.0;
@@ -125,7 +115,7 @@ class Game {
 
         // Add logo
         const logo = document.createElement('img');
-        logo.src = new URL('start.png', import.meta.url).href;
+        logo.src = import.meta.env.BASE_URL + 'start.png';
         logo.style.width = '400px';
         logo.style.marginBottom = '40px';
         this.startScreenContainer.appendChild(logo);
@@ -210,9 +200,6 @@ class Game {
         // Initialize game components
         this.setupLighting();
         this.setupControlsUI();
-        if (this.isMobile) {
-            this.setupMobileControls();
-        }
         this.loadDroneModel();
         this.addBuildings();
         this.addGround();
@@ -222,10 +209,8 @@ class Game {
 
         // Add event listeners
         window.addEventListener('resize', this.onWindowResize.bind(this));
-        if (!this.isMobile) {
-            document.addEventListener('keydown', this.onKeyDown.bind(this));
-            document.addEventListener('keyup', this.onKeyUp.bind(this));
-        }
+        document.addEventListener('keydown', this.onKeyDown.bind(this));
+        document.addEventListener('keyup', this.onKeyUp.bind(this));
 
         // Update UI based on game mode
         this.updateUIForGameMode();
@@ -304,98 +289,19 @@ class Game {
         infoElement.style.padding = '10px';
         infoElement.style.borderRadius = '8px';
         infoElement.style.fontFamily = 'Arial, sans-serif';
-
-        if (this.isMobile) {
-            infoElement.innerHTML = `
-                <h3 style="margin:0; font-size:18px;">Game Controls</h3>
-                <ul style="list-style:none; padding:0; margin:5px 0;">
-                    <li>Left Pad: Altitude & Rotation</li>
-                    <li>Right Pad: Movement</li>
-                    <li>Spray Button: Toggle Sprayer</li>
-                    <li>Camera Button: Switch View</li>
-                </ul>
-                <p id="score-display" style="margin:0; font-weight:bold;">Score: 0/5 Logos Collected!</p>
-            `;
-        } else {
-            infoElement.innerHTML = `
-                <h3 style="margin:0; font-size:18px;">Game Controls</h3>
-                <ul style="list-style:none; padding:0; margin:5px 0;">
-                    <li>Arrow Keys: Move Drone</li>
-                    <li>A/D: Yaw Left/Right</li>
-                    <li>W/S: Up/Down</li>
-                    <li>Space: Toggle Sprayer</li>
-                    <li>C: Clean (when sprayer is on)</li>
-                    <li>V: Toggle Camera</li>
-                    <li>Mouse: Orbit Camera (if enabled)</li>
-                </ul>
-                <p id="score-display" style="margin:0; font-weight:bold;">Score: 0/5 Logos Collected!</p>
-            `;
-        }
-    }
-
-    private setupMobileControls(): void {
-        const mobileControls = document.getElementById('mobileControls');
-        if (mobileControls) {
-            mobileControls.style.display = 'block';
-        }
-
-        // Setup touch event handlers for all control buttons
-        const buttons = {
-            'upLeft': 'w',
-            'downLeft': 's',
-            'leftLeft': 'a',
-            'rightLeft': 'd',
-            'upRight': 'arrowup',
-            'downRight': 'arrowdown',
-            'leftRight': 'arrowleft',
-            'rightRight': 'arrowright'
-        };
-
-        // Add touch handlers for movement buttons
-        Object.entries(buttons).forEach(([buttonId, key]) => {
-            const button = document.getElementById(buttonId);
-            if (button) {
-                button.addEventListener('touchstart', (e) => {
-                    e.preventDefault();
-                    this.touchControls[key] = true;
-                    this.keysPressed[key] = true;
-                });
-                button.addEventListener('touchend', (e) => {
-                    e.preventDefault();
-                    this.touchControls[key] = false;
-                    this.keysPressed[key] = false;
-                });
-            }
-        });
-
-        // Add spray button handler
-        const sprayButton = document.getElementById('sprayButton');
-        if (sprayButton) {
-            sprayButton.addEventListener('touchstart', (e) => {
-                e.preventDefault();
-                this.isSprayOn = !this.isSprayOn;
-                if (this.isSprayOn && !this.spraySystem) {
-                    this.createSpraySystem();
-                }
-                sprayButton.style.backgroundColor = this.isSprayOn ? 'rgba(0, 255, 255, 0.4)' : 'rgba(255, 255, 255, 0.25)';
-            });
-        }
-
-        // Add camera toggle button handler
-        const cameraButton = document.getElementById('cameraButton');
-        if (cameraButton) {
-            cameraButton.addEventListener('touchstart', (e) => {
-                e.preventDefault();
-                this.toggleCamera();
-            });
-        }
-
-        // Prevent default touch behavior to avoid scrolling
-        document.addEventListener('touchmove', (e) => {
-            if (this.gameStarted) {
-                e.preventDefault();
-            }
-        }, { passive: false });
+        infoElement.innerHTML = `
+            <h3 style="margin:0; font-size:18px;">Game Controls</h3>
+            <ul style="list-style:none; padding:0; margin:5px 0;">
+                <li>Arrow Keys: Move Drone</li>
+                <li>A/D: Yaw Left/Right</li>
+                <li>W/S: Up/Down</li>
+                <li>Space: Toggle Sprayer</li>
+                <li>C: Clean (when sprayer is on)</li>
+                <li>V: Toggle Camera</li>
+                <li>Mouse: Orbit Camera (if enabled)</li>
+            </ul>
+            <p id="score-display" style="margin:0; font-weight:bold;">Score: 0/5 Logos Collected!</p>
+        `;
     }
 
     private loadDroneModel(): void {
@@ -405,81 +311,78 @@ class Game {
         loader.setDRACOLoader(dracoLoader);
 
         console.log('Attempting to load drone model...');
-        loader.load(
-            new URL('sherpaModel.glb', import.meta.url).href,
-            (gltf: GLTF) => {
-                console.log('Drone model loaded successfully:', gltf);
-                if (gltf.scene) {
-                    const droneHolder = new THREE.Object3D();
-                    const droneModel = gltf.scene;
-                    // Rotate so it faces forward
-                    droneModel.rotation.x = -Math.PI / 2;
-                    droneModel.scale.set(0.5, 0.5, 0.5);
-                    
-                    // Traverse to set shadow properties and find propellers
-                    droneModel.traverse((child: THREE.Object3D) => {
-                        if (child instanceof THREE.Mesh) {
-                            child.castShadow = true;
-                            child.receiveShadow = true;
-                            if (child.material && child.material.transparent) {
-                                child.material.opacity = 0.9;
-                                child.material.side = THREE.DoubleSide;
-                            }
-                            if (child.name.toLowerCase().includes('propeller') || 
-                                child.name.toLowerCase().includes('prop') || 
-                                child.name.toLowerCase().includes('rotor')) {
-                                console.log('Found propeller:', child.name);
-                                this.propellers.push(child);
-                            }
-                        }
-                    });
-
-                    droneHolder.add(droneModel);
-                    droneHolder.position.set(0, 5, 0);
-
-                    // Add drone lights
-                    const droneSpotLight = new THREE.SpotLight(0xffffff, 1);
-                    droneSpotLight.position.set(0, 0.5, 0);
-                    droneSpotLight.angle = Math.PI / 6;
-                    droneSpotLight.penumbra = 0.5;
-                    droneSpotLight.decay = 2;
-                    droneSpotLight.distance = 10;
-                    droneHolder.add(droneSpotLight);
-                    const dronePointLight = new THREE.PointLight(0xffffff, 0.5, 5);
-                    droneHolder.add(dronePointLight);
-
-                    this.drone = droneHolder;
-                    this.scene.add(this.drone);
-                    console.log('Drone added to scene at position:', this.drone.position);
-
-                    dracoLoader.dispose();
-                } else {
-                    console.error('No scene found in the loaded model');
-                }
-            },
-            (progress: { loaded: number; total: number }) => {
-                const percentComplete = Math.round((progress.loaded / progress.total) * 100);
-                console.log(`Loading progress: ${percentComplete}%`);
-            },
-            (err: unknown) => {
-                console.error('Error loading drone model:', err);
+        loader.load(import.meta.env.BASE_URL + 'sherpaModel.glb', (gltf: GLTF) => {
+            console.log('Drone model loaded successfully:', gltf);
+            if (gltf.scene) {
                 const droneHolder = new THREE.Object3D();
-                const geometry = new THREE.BoxGeometry(2, 1, 2);
-                const material = new THREE.MeshPhongMaterial({
-                    color: 0x3366ff,
-                    transparent: true,
-                    opacity: 0.8
+                const droneModel = gltf.scene;
+                // Rotate so it faces forward
+                droneModel.rotation.x = -Math.PI / 2;
+                droneModel.scale.set(0.5, 0.5, 0.5);
+                
+                // Traverse to set shadow properties and find propellers
+                droneModel.traverse((child) => {
+                    if (child instanceof THREE.Mesh) {
+                        child.castShadow = true;
+                        child.receiveShadow = true;
+                        if (child.material && child.material.transparent) {
+                            child.material.opacity = 0.9;
+                            child.material.side = THREE.DoubleSide;
+                        }
+                        if (child.name.toLowerCase().includes('propeller') || 
+                            child.name.toLowerCase().includes('prop') || 
+                            child.name.toLowerCase().includes('rotor')) {
+                            console.log('Found propeller:', child.name);
+                            this.propellers.push(child);
+                        }
+                    }
                 });
-                const fallbackCube = new THREE.Mesh(geometry, material);
-                droneHolder.add(fallbackCube);
+
+                droneHolder.add(droneModel);
                 droneHolder.position.set(0, 5, 0);
-                const droneLight = new THREE.PointLight(0xffffff, 0.5, 10);
-                droneHolder.add(droneLight);
+
+                // Add drone lights
+                const droneSpotLight = new THREE.SpotLight(0xffffff, 1);
+                droneSpotLight.position.set(0, 0.5, 0);
+                droneSpotLight.angle = Math.PI / 6;
+                droneSpotLight.penumbra = 0.5;
+                droneSpotLight.decay = 2;
+                droneSpotLight.distance = 10;
+                droneHolder.add(droneSpotLight);
+                const dronePointLight = new THREE.PointLight(0xffffff, 0.5, 5);
+                droneHolder.add(dronePointLight);
+
                 this.drone = droneHolder;
                 this.scene.add(this.drone);
-                console.log('Fallback drone cube added to scene');
+                console.log('Drone added to scene at position:', this.drone.position);
+
+                dracoLoader.dispose();
+            } else {
+                console.error('No scene found in the loaded model');
             }
-        );
+        },
+        (progress) => {
+            const percentComplete = Math.round((progress.loaded / progress.total) * 100);
+            console.log(`Loading progress: ${percentComplete}%`);
+        },
+        (error) => {
+            console.error('Error loading drone model:', error);
+            const droneHolder = new THREE.Object3D();
+            const geometry = new THREE.BoxGeometry(2, 1, 2);
+            const material = new THREE.MeshPhongMaterial({
+                color: 0x3366ff,
+                transparent: true,
+                opacity: 0.8
+            });
+            const fallbackCube = new THREE.Mesh(geometry, material);
+            droneHolder.add(fallbackCube);
+            droneHolder.position.set(0, 5, 0);
+            const droneLight = new THREE.PointLight(0xffffff, 0.5, 10);
+            droneHolder.add(droneLight);
+            this.drone = droneHolder;
+            this.scene.add(this.drone);
+            console.log('Fallback drone cube added to scene');
+        });
     }
 
     private addBuildings(): void {
@@ -564,7 +467,7 @@ class Game {
         const rotationSpeed = 1.5;
         const droneRadius = 0.8;
 
-        // Yaw rotation (A/D or touch controls)
+        // Yaw rotation (A/D)
         if (this.keysPressed['a']) {
             this.drone.rotation.y += rotationSpeed * delta;
         }
@@ -572,14 +475,16 @@ class Game {
             this.drone.rotation.y -= rotationSpeed * delta;
         }
 
-        // Horizontal movement (arrow keys/touch controls)
+        // Horizontal movement (arrow keys and Q/E for strafing)
         let moveX = 0, moveZ = 0;
         if (this.keysPressed['arrowdown']) moveZ -= 1;
         if (this.keysPressed['arrowup']) moveZ += 1;
         if (this.keysPressed['arrowleft']) moveX += 1;
         if (this.keysPressed['arrowright']) moveX -= 1;
+        if (this.keysPressed['q']) moveX -= 1;
+        if (this.keysPressed['e']) moveX += 1;
 
-        // Vertical movement (W/S or touch controls)
+        // Vertical movement (W/S)
         let moveY = 0;
         if (this.keysPressed['w']) moveY += 1;
         if (this.keysPressed['s']) moveY -= 1;
@@ -658,7 +563,7 @@ class Game {
             return;
         }
 
-        const positions = (this.spraySystem.geometry.attributes.position as THREE.BufferAttribute).array as Float32Array;
+        const positions = this.spraySystem.geometry.attributes.position.array as Float32Array;
         const particleCount = positions.length / 3;
         
         for (let i = 0; i < particleCount; i++) {
@@ -672,7 +577,7 @@ class Game {
             positions[i3] *= 0.99;
             positions[i3 + 1] *= 0.99;
         }
-        (this.spraySystem.geometry.attributes.position as THREE.BufferAttribute).needsUpdate = true;
+        this.spraySystem.geometry.attributes.position.needsUpdate = true;
     }
 
     private updateCameras(): void {
@@ -841,7 +746,7 @@ class Game {
         sprayContainer.updateMatrixWorld();
         const matrixWorld = sprayContainer.matrixWorld;
 
-        const positions = (this.spraySystem.geometry.attributes.position as THREE.BufferAttribute).array as Float32Array;
+        const positions = this.spraySystem.geometry.attributes.position.array as Float32Array;
         const particleCount = positions.length / 3;
         const collisionThreshold = 0.5;
 
@@ -918,7 +823,7 @@ class Game {
                 sparkleMaterial.dispose();
                 return;
             }
-            const positions = (sparkleGeometry.attributes.position as THREE.BufferAttribute).array as Float32Array;
+            const positions = sparkleGeometry.attributes.position.array as Float32Array;
             for (let i = 0; i < sparkleCount; i++) {
                 const i3 = i * 3;
                 positions[i3] += sparkleVelocities[i].x * 0.1;
@@ -959,7 +864,7 @@ class Game {
 
         // Add logo image at the top
         const logoImg = document.createElement('img');
-        logoImg.src = new URL('logo.png', import.meta.url).href;
+        logoImg.src = import.meta.env.BASE_URL + 'logo.png';
         logoImg.style.width = '120px';
         logoImg.style.marginBottom = '20px';
         winElement.appendChild(logoImg);
@@ -1027,7 +932,7 @@ class Game {
     private createLogo(): THREE.Mesh {
         const logoGeometry = new THREE.CircleGeometry(1.5, 32);
         const textureLoader = new THREE.TextureLoader();
-        const logoTexture = textureLoader.load(new URL('logo.png', import.meta.url).href);
+        const logoTexture = textureLoader.load(import.meta.env.BASE_URL + 'logo.png');
         logoTexture.minFilter = THREE.LinearFilter;
         logoTexture.magFilter = THREE.LinearFilter;
         
@@ -1122,7 +1027,7 @@ class Game {
 
         // Add logo image
         const logoImg = document.createElement('img');
-        logoImg.src = new URL('logo.png', import.meta.url).href;
+        logoImg.src = import.meta.env.BASE_URL + 'logo.png';
         logoImg.style.width = '100px';
         logoImg.style.marginBottom = '15px';
         popupElement.appendChild(logoImg);
