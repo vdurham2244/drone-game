@@ -12,7 +12,7 @@ export default defineConfig({
   server: {
     open: true
   },
-  base: '/drone-game/',
+  base: './',
   build: {
     target: 'es2015',
     minify: 'terser',
